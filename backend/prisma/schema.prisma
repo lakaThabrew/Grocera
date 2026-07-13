@@ -1,0 +1,131 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(CONSUMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  baskets   Basket[]
+}
+
+enum Role {
+  ADMIN
+  CONSUMER
+  BUSINESS
+}
+
+model Store {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  url       String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id           String         @id @default(uuid())
+  name         String
+  description  String?
+  brand        String?
+  weight       String?
+  canonicalId  String?        // For matching products across stores
+  storeId      String
+  store        Store          @relation(fields: [storeId], references: [id])
+  categoryId   String?
+  category     Category?      @relation(fields: [categoryId], references: [id])
+  prices       PriceHistory[]
+  discounts    Discount[]
+  baskets      BasketItem[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([name, storeId])
+}
+
+model PriceHistory {
+  id        String   @id @default(uuid())
+  price     Float
+  currency  String   @default("LKR")
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Discount {
+  id          String   @id @default(uuid())
+  description String
+  amount      Float?
+  percentage  Float?
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Job {
+  id        String   @id @default(uuid())
+  name      String
+  status    JobStatus @default(PENDING)
+  result    String?
+  error     String?
+  startedAt DateTime?
+  endedAt   DateTime?
+  createdAt DateTime @default(now())
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Proxy {
+  id        String   @id @default(uuid())
+  ip        String
+  port      Int
+  username  String?
+  password  String?
+  protocol  String   @default("http")
+  isActive  Boolean  @default(true)
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+}
+
+model Basket {
+  id        String       @id @default(uuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  items     BasketItem[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model BasketItem {
+  id        String   @id @default(uuid())
+  basketId  String
+  basket    Basket   @relation(fields: [basketId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+}
