@@ -12,76 +12,104 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const login = useAuthStore(state => state.login);
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
     try {
       const res = await api.post('/auth/register', { email, password, firstName, lastName });
       login(res.data.user, res.data.access_token);
       router.push('/');
-    } catch (err: any) {
-      const msg = err.response?.data?.message;
+    } catch (err: unknown) {
+      const error = err as any;
+      const msg = error.response?.data?.message;
       setError(Array.isArray(msg) ? msg[0] : msg || 'Registration failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background py-12">
-      <div className="w-full max-w-md space-y-8 rounded-xl border border-border bg-card p-10 shadow-lg">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">Create an account</h2>
-          <p className="text-sm text-muted-foreground mt-2">Join Grocera to manage your retail intelligence</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-sm">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <span className="text-xl font-bold">G</span>
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">Create Account</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Join Grocera today
+          </p>
         </div>
-        {error && <div className="text-destructive bg-destructive/10 p-3 rounded-md text-sm text-center font-medium">{error}</div>}
-        <form className="space-y-6" onSubmit={handleRegister}>
+
+        {error && (
+          <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive text-center font-medium">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleRegister} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
+            <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">First Name</label>
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                required
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Last Name</label>
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                required
               />
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-foreground">Email address</label>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
             />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
               minLength={6}
             />
           </div>
-          <Button type="submit" className="w-full">Sign up</Button>
+          <Button 
+            type="submit" 
+            disabled={isLoading} 
+            className="w-full bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            {isLoading ? 'Creating...' : 'Sign Up'}
+          </Button>
         </form>
-        <div className="text-center text-sm text-muted-foreground">
-          Already have an account? <a href="/login" className="font-medium text-primary hover:underline">Sign in</a>
+
+        <div className="mt-6 text-center text-sm">
+          <span className="text-muted-foreground">Already have an account? </span>
+          <a href="/login" className="font-semibold text-primary hover:text-accent transition-colors">
+            Sign in
+          </a>
         </div>
       </div>
     </div>
