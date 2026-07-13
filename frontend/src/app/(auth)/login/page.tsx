@@ -1,32 +1,65 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+"use client"
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/useAuthStore';
+import { api } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const login = useAuthStore(state => state.login);
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const res = await api.post('/auth/login', { email, password });
+      login(res.data.user, res.data.access_token);
+      router.push('/');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Login failed');
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-md space-y-8 rounded-xl border bg-card p-8 shadow-lg">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Login</h1>
-          <p className="text-muted-foreground">Enter your credentials to access your account</p>
+    <div className="flex h-screen w-full items-center justify-center bg-background">
+      <div className="w-full max-w-md space-y-8 rounded-xl border border-border bg-card p-10 shadow-lg">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">Sign in to Grocera</h2>
+          <p className="text-sm text-muted-foreground mt-2">Enter your email and password to access your dashboard</p>
         </div>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium leading-none" htmlFor="email">Email</label>
-            <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" id="email" placeholder="m@example.com" required type="email" />
+        {error && <div className="text-destructive bg-destructive/10 p-3 rounded-md text-sm text-center font-medium">{error}</div>}
+        <form className="space-y-6" onSubmit={handleLogin}>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-foreground">Email address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              required
+            />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium leading-none" htmlFor="password">Password</label>
-            <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" id="password" required type="password" />
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-foreground">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              required
+            />
           </div>
-          <Button className="w-full" type="button">Sign In</Button>
-        </div>
-        <div className="text-center text-sm">
-          Don&apos;t have an account?{" "}
-          <Link className="underline underline-offset-4 hover:text-primary" href="/register">
-            Sign up
-          </Link>
+          <Button type="submit" className="w-full">Sign in</Button>
+        </form>
+        <div className="text-center text-sm text-muted-foreground">
+          Don't have an account? <a href="/register" className="font-medium text-primary hover:underline">Sign up</a>
         </div>
       </div>
     </div>
-  )
+  );
 }

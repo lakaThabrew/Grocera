@@ -8,13 +8,21 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(CONSUMER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  baskets   Basket[]
+  id                   String         @id @default(uuid())
+  email                String         @unique
+  password             String
+  role                 Role           @default(CONSUMER)
+  isEmailVerified      Boolean        @default(false)
+  verificationToken    String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  refreshToken         String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  baskets              Basket[]
+  profile              Profile?
+  subscription         Subscription?
+  apiKeys              ApiKey[]
 }
 
 enum Role {
@@ -128,4 +136,50 @@ model BasketItem {
   product   Product  @relation(fields: [productId], references: [id])
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  firstName String?
+  lastName  String?
+  phone     String?
+  address   String?
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  plan      SubscriptionPlan   @default(FREE)
+  status    SubscriptionStatus @default(ACTIVE)
+  startDate DateTime           @default(now())
+  endDate   DateTime?
+  userId    String             @unique
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  lastUsed  DateTime?
 }
