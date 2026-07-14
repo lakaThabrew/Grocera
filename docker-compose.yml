@@ -23,6 +23,35 @@ services:
     volumes:
       - redis_data:/data
 
+  backend:
+    build:
+      context: ./backend
+    container_name: grocera_backend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://grocera:grocerapassword@postgres:5432/groceradb?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - GEMINI_API_KEY=AIzaSyBJXvtSPSuvLhgXKooGIMACljXllCeoZzE
+      - PORT=3001
+    depends_on:
+      - postgres
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: grocera_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
   redis_data:
