@@ -2,9 +2,37 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { WinstonModule, utilities as nestWinstonModuleUtilities } from 'nest-winston';
+import * as winston from 'winston';
+import 'winston-daily-rotate-file';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: WinstonModule.createLogger({
+      transports: [
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.timestamp(),
+            nestWinstonModuleUtilities.format.nestLike('Grocera', {
+              colors: true,
+              prettyPrint: true,
+            }),
+          ),
+        }),
+        new winston.transports.DailyRotateFile({
+          filename: 'logs/error-%DATE%.log',
+          datePattern: 'YYYY-MM-DD',
+          level: 'error',
+          format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+        }),
+        new winston.transports.DailyRotateFile({
+          filename: 'logs/app-%DATE%.log',
+          datePattern: 'YYYY-MM-DD',
+          format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+        }),
+      ],
+    }),
+  });
 
   // Global Prefix
   app.setGlobalPrefix('api/v1');
