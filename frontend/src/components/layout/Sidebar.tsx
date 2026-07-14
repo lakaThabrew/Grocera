@@ -2,14 +2,15 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, ShoppingCart, Tag, BarChart3, Settings, ShoppingBag } from "lucide-react"
+import { LayoutDashboard, ShoppingCart, Tag, BarChart3, Settings, ShoppingBag, Database, Bot } from "lucide-react"
 
 const routes = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/assistant", label: "AI Assistant", icon: Bot },
   { href: "/products", label: "Products", icon: ShoppingBag },
   { href: "/baskets", label: "Baskets", icon: ShoppingCart },
   { href: "/discounts", label: "Discounts", icon: Tag },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/scraper", label: "Scraper Engine", icon: Database },
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 
