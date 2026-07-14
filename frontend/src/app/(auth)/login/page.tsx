@@ -23,7 +23,7 @@ export default function LoginPage() {
       login(res.data.user, res.data.access_token);
       router.push('/');
     } catch (err: unknown) {
-      const error = err as any;
+      const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || 'Login failed');
     } finally {
       setIsLoading(false);

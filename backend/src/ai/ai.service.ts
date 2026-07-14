@@ -39,9 +39,9 @@ export class AiService {
     operation: (aiClient: GoogleGenAI, model: string) => Promise<any>
   ): Promise<any> {
     const modelsToTry = [
-      'gemini-2.5-flash',
-      'gemini-2.5-flash-lite',
-      'gemini-2.5-pro'
+      'gemini-3.5-flash',
+      'gemini-3.1-flash-lite',
+      'gemini-3.1-pro'
     ];
     
     const clients = [
@@ -60,7 +60,7 @@ export class AiService {
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
           try {
-            if (attempt > 0 || model !== 'gemini-2.5-flash' || clientName !== 'Primary Key') {
+            if (attempt > 0 || model !== 'gemini-3.5-flash' || clientName !== 'Primary Key') {
               this.logger.debug(`Attempting AI operation using ${clientName} -> model '${model}' (attempt ${attempt + 1}/${maxRetries})...`);
             }
             return await operation(client, model);

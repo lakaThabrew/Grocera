@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Package, Store as StoreIcon, Tag } from 'lucide-react';
+import { Package, Store as StoreIcon } from 'lucide-react';
 
 interface Product {
   id: string;

@@ -18,9 +18,10 @@ export default function ScraperControlPage() {
       const res = await api.post('/scraping/trigger', { store, categoryUrl });
       setStatus('success');
       setMessage(res.data.message || 'Scraping job queued successfully! Products will appear soon.');
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
       setStatus('error');
-      setMessage(err.response?.data?.message || 'Failed to trigger scraper.');
+      setMessage(error.response?.data?.message || 'Failed to trigger scraper.');
     }
   };
 

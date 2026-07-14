@@ -25,7 +25,7 @@ export default function RegisterPage() {
       login(res.data.user, res.data.access_token);
       router.push('/');
     } catch (err: unknown) {
-      const error = err as any;
+      const error = err as { response?: { data?: { message?: string | string[] } } };
       const msg = error.response?.data?.message;
       setError(Array.isArray(msg) ? msg[0] : msg || 'Registration failed');
     } finally {
