@@ -1,32 +1,92 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+"use client"
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/useAuthStore';
+import { api } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const login = useAuthStore(state => state.login);
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const res = await api.post('/auth/login', { email, password });
+      login(res.data.user, res.data.access_token);
+      router.push('/');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <div className="w-full max-w-md space-y-8 rounded-xl border bg-card p-8 shadow-lg">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Login</h1>
-          <p className="text-muted-foreground">Enter your credentials to access your account</p>
+    <div className="w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-sm">
+        <div className="mb-6 flex flex-col items-center text-center">
+          {/* Brand Logo Placeholder */}
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <span className="text-xl font-bold">G</span>
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Log in to your Grocera account
+          </p>
         </div>
-        <div className="space-y-4">
+
+        {error && (
+          <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive text-center font-medium">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium leading-none" htmlFor="email">Email</label>
-            <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" id="email" placeholder="m@example.com" required type="email" />
+            <label className="text-sm font-medium text-foreground">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              required
+            />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium leading-none" htmlFor="password">Password</label>
-            <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" id="password" required type="password" />
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-foreground">Password</label>
+            </div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              required
+            />
           </div>
-          <Button className="w-full" type="button">Sign In</Button>
-        </div>
-        <div className="text-center text-sm">
-          Don&apos;t have an account?{" "}
-          <Link className="underline underline-offset-4 hover:text-primary" href="/register">
+          <Button 
+            type="submit" 
+            disabled={isLoading} 
+            className="w-full bg-primary text-primary-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            {isLoading ? 'Signing in...' : 'Sign In'}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center text-sm">
+          <span className="text-muted-foreground">Don&apos;t have an account? </span>
+          <a href="/register" className="font-semibold text-primary hover:text-accent transition-colors">
             Sign up
-          </Link>
+          </a>
         </div>
       </div>
-    </div>
-  )
+  );
 }
