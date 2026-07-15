@@ -12,7 +12,11 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   @ApiOperation({ summary: 'Get current user profile' })
-  async getProfile(@Request() req) {
-    return this.usersService.findById(req.user.id);
+  async getProfile(@Request() req: { user: { id: string } }) {
+    const user = await this.usersService.findById(req.user.id);
+    if (!user) return null;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...safeUser } = user;
+    return safeUser;
   }
 }

@@ -24,6 +24,10 @@ model User {
   profile              Profile?
   subscription         Subscription?
   apiKeys              ApiKey[]
+  favoriteStores       FavoriteStore[]
+  favoriteProducts     FavoriteProduct[]
+  priceAlerts          PriceAlert[]
+  notifications        Notification[]
 }
 
 enum Role {
@@ -38,7 +42,8 @@ model Store {
   url       String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  products  Product[]
+  products    Product[]
+  favoritedBy FavoriteStore[]
 }
 
 model Category {
@@ -65,6 +70,8 @@ model Product {
   baskets      BasketItem[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+  favoritedBy  FavoriteProduct[]
+  priceAlerts  PriceAlert[]
 
   @@unique([name, storeId])
 }
@@ -181,6 +188,58 @@ model ApiKey {
   name      String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   lastUsed  DateTime?
 }
+
+model FavoriteStore {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, storeId])
+}
+
+model FavoriteProduct {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model PriceAlert {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  targetPrice  Float
+  isActive     Boolean  @default(true)
+  emailAlert   Boolean  @default(true)
+  smsAlert     Boolean  @default(false)
+  pushAlert    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  type      String   @default("INFO") // INFO, ALERT, PROMO
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+

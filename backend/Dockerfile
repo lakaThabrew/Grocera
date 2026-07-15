@@ -1,6 +1,6 @@
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 
-RUN apk add --no-cache openssl
+RUN apt-get update && apt-get install -y openssl
 
 # Create app directory
 WORKDIR /app
@@ -22,9 +22,9 @@ RUN npx prisma generate
 RUN npm run build
 
 # Production image
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 
-RUN apk add --no-cache openssl
+RUN apt-get update && apt-get install -y openssl
 
 WORKDIR /app
 
@@ -32,6 +32,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+
+# Install Playwright dependencies
+RUN npx playwright install --with-deps chromium
 
 EXPOSE 3001
 

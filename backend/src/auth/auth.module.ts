@@ -11,7 +11,11 @@ import { JwtStrategy } from './jwt.strategy';
     UsersModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'grocera-super-secret-key-2026',
+      secret: (() => {
+        const secret = process.env.JWT_SECRET;
+        if (!secret) throw new Error('JWT_SECRET is not set');
+        return secret;
+      })(),
       signOptions: { expiresIn: '1d' },
     }),
   ],
