@@ -18,10 +18,15 @@ export abstract class BaseScraper {
     this.logger.log('Initializing browser...');
     this.browser = await chromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-blink-features=AutomationControlled',
+      ],
     });
     this.context = await this.browser.newContext({
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       viewport: { width: 1920, height: 1080 },
     });
     this.page = await this.context.newPage();
@@ -34,21 +39,27 @@ export abstract class BaseScraper {
     }
   }
 
-  protected async getHtml(url: string, waitForSelector?: string): Promise<string> {
+  protected async getHtml(
+    url: string,
+    waitForSelector?: string,
+  ): Promise<string> {
     this.logger.log(`Navigating to ${url}`);
-    await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    
+    await this.page.goto(url, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
+    });
+
     if (waitForSelector) {
       await this.page.waitForSelector(waitForSelector, { timeout: 15000 });
     } else {
       await this.page.waitForTimeout(2000);
     }
-    
+
     return await this.page.content();
   }
 
   abstract scrapeCategory(url: string): Promise<void>;
-  
+
   protected async saveProduct(data: {
     storeName: string;
     name: string;
@@ -94,7 +105,9 @@ export abstract class BaseScraper {
         productId: product.id,
       },
     });
-    
-    this.logger.log(`Saved normalized product: ${normalized.canonicalName} (Original: ${data.name}) - Rs ${data.price}`);
+
+    this.logger.log(
+      `Saved normalized product: ${normalized.canonicalName} (Original: ${data.name}) - Rs ${data.price}`,
+    );
   }
 }

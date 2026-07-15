@@ -16,8 +16,10 @@ export class ScraperProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<any, any, string>): Promise<any> {
-    this.logger.log(`Processing job ${job.id} of type ${job.name}`);
+  async process(
+    job: Job<{ dbJobId?: string; store: string; categoryUrl: string }>,
+  ): Promise<any> {
+    this.logger.log(`Processing job ${String(job.id)} of type ${job.name}`);
 
     if (job.name === 'scrape-category') {
       const { dbJobId, store, categoryUrl } = job.data;
@@ -25,41 +27,52 @@ export class ScraperProcessor extends WorkerHost {
       if (dbJobId) {
         await this.prisma.job.update({
           where: { id: dbJobId },
-          data: { status: 'RUNNING', startedAt: new Date() }
+          data: { status: 'RUNNING', startedAt: new Date() },
         });
       }
 
-      // Simple Factory based on store
-      let scraper;
-      if (store.toLowerCase() === 'keells') {
-        scraper = new KeellsScraper(this.prisma, this.aiService);
-      } else {
-        throw new Error(`Store ${store} not supported yet`);
-      }
+      let scraper: KeellsScraper | undefined;
 
       try {
+        // Simple Factory based on store
+        if (store.toLowerCase() === 'keells') {
+          scraper = new KeellsScraper(this.prisma, this.aiService);
+        } else {
+          throw new Error(`Store ${store} not supported yet`);
+        }
+
         await scraper.init();
         await scraper.scrapeCategory(categoryUrl);
 
         if (dbJobId) {
           await this.prisma.job.update({
             where: { id: dbJobId },
-            data: { status: 'COMPLETED', endedAt: new Date(), result: 'Scrape completed successfully' }
+            data: {
+              status: 'COMPLETED',
+              endedAt: new Date(),
+              result: 'Scrape completed successfully',
+            },
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.logger.error(`Scraping failed for ${store}`, error);
-        
+
         if (dbJobId) {
           await this.prisma.job.update({
             where: { id: dbJobId },
-            data: { status: 'FAILED', endedAt: new Date(), error: error.message || 'Unknown error' }
+            data: {
+              status: 'FAILED',
+              endedAt: new Date(),
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
           });
         }
-        
+
         throw error;
       } finally {
-        await scraper.close();
+        if (scraper) {
+          await scraper.close();
+        }
       }
     }
   }

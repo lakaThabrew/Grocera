@@ -14,24 +14,28 @@ export class ScrapingService {
 
   async queueCategoryScrape(store: string, categoryUrl: string) {
     this.logger.log(`Queueing category scrape for ${store}: ${categoryUrl}`);
-    
+
     const dbJob = await this.prisma.job.create({
       data: {
         name: `Scrape ${store} - ${categoryUrl}`,
         status: 'PENDING',
-      }
+      },
     });
 
-    await this.scrapingQueue.add('scrape-category', {
-      dbJobId: dbJob.id,
-      store,
-      categoryUrl,
-    }, {
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 5000,
-      }
-    });
+    await this.scrapingQueue.add(
+      'scrape-category',
+      {
+        dbJobId: dbJob.id,
+        store,
+        categoryUrl,
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000,
+        },
+      },
+    );
   }
 }

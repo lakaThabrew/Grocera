@@ -18,13 +18,16 @@ export class AiController {
   }
 
   @Post('chat')
-  async chat(@Body() body: { message: string, history?: any[] }) {
+  async chat(@Body() body: { message: string; history?: any[] }) {
     if (!body.message) {
       return { error: 'message is required' };
     }
-    const responseText = await this.aiService.chatWithAssistant(body.message, body.history || []);
+    const responseText = await this.aiService.chatWithAssistant(
+      body.message,
+      body.history || [],
+    );
     return {
-      reply: responseText
+      reply: responseText,
     };
   }
 }

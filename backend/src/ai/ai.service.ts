@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 import { Injectable, Logger } from '@nestjs/common';
 import { GoogleGenAI, Type, Schema, Content } from '@google/genai';
 import { PrismaService } from '../prisma.service';
@@ -17,10 +18,12 @@ export class AiService {
 
   constructor(private readonly prisma: PrismaService) {
     // Requires GEMINI_API_KEY in the environment
-    this.primaryAi = new GoogleGenAI({ 
-      apiKey: process.env.GEMINI_API_KEY 
-    });
-    
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is not set');
+    }
+    this.primaryAi = new GoogleGenAI({ apiKey });
+
     // Check if backup key is provided
     let backupKey = process.env.GEMINI_API_KEY_BACKUP;
     if (backupKey) {
@@ -36,17 +39,15 @@ export class AiService {
    * fallback to alternative models, and fallback to a secondary API key if provided.
    */
   private async executeWithFallback(
-    operation: (aiClient: GoogleGenAI, model: string) => Promise<any>
+    operation: (aiClient: GoogleGenAI, model: string) => Promise<any>,
   ): Promise<any> {
     const modelsToTry = [
       'gemini-3.5-flash',
       'gemini-3.1-flash-lite',
-      'gemini-3.1-pro'
+      'gemini-3.1-pro',
     ];
-    
-    const clients = [
-      { name: 'Primary Key', client: this.primaryAi },
-    ];
+
+    const clients = [{ name: 'Primary Key', client: this.primaryAi }];
     if (this.backupAi) {
       clients.push({ name: 'Backup Key', client: this.backupAi });
     }
@@ -60,43 +61,62 @@ export class AiService {
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
           try {
-            if (attempt > 0 || model !== 'gemini-3.5-flash' || clientName !== 'Primary Key') {
-              this.logger.debug(`Attempting AI operation using ${clientName} -> model '${model}' (attempt ${attempt + 1}/${maxRetries})...`);
+            if (
+              attempt > 0 ||
+              model !== 'gemini-3.5-flash' ||
+              clientName !== 'Primary Key'
+            ) {
+              this.logger.debug(
+                `Attempting AI operation using ${clientName} -> model '${model}' (attempt ${attempt + 1}/${maxRetries})...`,
+              );
             }
             return await operation(client, model);
           } catch (error: any) {
             lastError = error;
-            const msg = error.message?.toLowerCase() || String(error).toLowerCase();
-            
+            const msg =
+              error.message?.toLowerCase() || String(error).toLowerCase();
+
             // Check if retriable (Rate limit, Unavailable, Quota)
-            const isRetriable = msg.includes('429') || 
-                                msg.includes('503') || 
-                                msg.includes('resource_exhausted') || 
-                                msg.includes('unavailable') || 
-                                msg.includes('quota') || 
-                                msg.includes('rate limit') || 
-                                msg.includes('too many requests');
-                                
+            const isRetriable =
+              msg.includes('429') ||
+              msg.includes('503') ||
+              msg.includes('resource_exhausted') ||
+              msg.includes('unavailable') ||
+              msg.includes('quota') ||
+              msg.includes('rate limit') ||
+              msg.includes('too many requests');
+
             if (isRetriable && attempt < maxRetries - 1) {
-              this.logger.warn(`${clientName} -> Model '${model}' temporary error. Retrying in ${delay}ms...`);
-              await new Promise(res => setTimeout(res, delay));
+              this.logger.warn(
+                `${clientName} -> Model '${model}' temporary error. Retrying in ${delay}ms...`,
+              );
+              await new Promise((res) => setTimeout(res, delay));
               delay *= 2;
               continue;
             } else {
-              this.logger.error(`${clientName} -> Model '${model}' failed: ${error.message || msg}`);
+              this.logger.error(
+                `${clientName} -> Model '${model}' failed: ${error.message || msg}`,
+              );
               break; // Break out of retry loop to move to the next fallback model
             }
           }
         }
       }
-      
+
       // If we exit the models loop and have a backup client, it means all models on the primary client failed.
       if (clients.length > 1 && clientName === 'Primary Key') {
-        this.logger.warn(`All models failed on Primary Key. Switching to Backup Key...`);
+        this.logger.warn(
+          `All models failed on Primary Key. Switching to Backup Key...`,
+        );
       }
     }
 
-    throw lastError || new Error("Failed to execute AI operation after all fallbacks and backup keys.");
+    throw (
+      lastError ||
+      new Error(
+        'Failed to execute AI operation after all fallbacks and backup keys.',
+      )
+    );
   }
 
   /**
@@ -111,20 +131,23 @@ export class AiService {
         properties: {
           canonicalName: {
             type: Type.STRING,
-            description: "The clean, generic name of the product without weights, units, or store-specific jargon. E.g., 'Anchor Full Cream Milk Powder'",
+            description:
+              "The clean, generic name of the product without weights, units, or store-specific jargon. E.g., 'Anchor Full Cream Milk Powder'",
           },
           brand: {
             type: Type.STRING,
-            description: "The brand name. E.g., 'Anchor'. If no brand is evident, return null.",
+            description:
+              "The brand name. E.g., 'Anchor'. If no brand is evident, return null.",
             nullable: true,
           },
           weight: {
             type: Type.STRING,
-            description: "The weight or volume including the unit (e.g., '400g', '1kg', '500ml'). If none, return null.",
+            description:
+              "The weight or volume including the unit (e.g., '400g', '1kg', '500ml'). If none, return null.",
             nullable: true,
           },
         },
-        required: ["canonicalName"],
+        required: ['canonicalName'],
       };
 
       const prompt = `
@@ -133,7 +156,7 @@ export class AiService {
         Raw Name: "${rawName}"
       `;
 
-      const response = await this.executeWithFallback((aiClient, model) => 
+      const response = await this.executeWithFallback((aiClient, model) =>
         aiClient.models.generateContent({
           model: model,
           contents: prompt,
@@ -142,27 +165,26 @@ export class AiService {
             responseSchema: responseSchema,
             temperature: 0.1,
           },
-        })
+        }),
       );
 
       if (!response.text) {
-        throw new Error("No response from Gemini");
+        throw new Error('No response from Gemini');
       }
 
       const parsed = JSON.parse(response.text);
-      
+
       // Generate a deterministic slug for the canonical ID
       // Format: brand-canonicalName-weight
-      const components = [
-        parsed.brand,
-        parsed.canonicalName,
-        parsed.weight
-      ].filter(Boolean).join('-').toLowerCase();
+      const components = [parsed.brand, parsed.canonicalName, parsed.weight]
+        .filter(Boolean)
+        .join('-')
+        .toLowerCase();
 
       // Simple slugify
       const canonicalId = components
         .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dash
-        .replace(/(^-|-$)/g, '');    // Remove leading/trailing dashes
+        .replace(/(^-|-$)/g, ''); // Remove leading/trailing dashes
 
       return {
         canonicalName: parsed.canonicalName,
@@ -170,11 +192,13 @@ export class AiService {
         weight: parsed.weight || null,
         canonicalId: canonicalId,
       };
-
     } catch (error) {
       this.logger.error(`Failed to normalize product "${rawName}":`, error);
       // Fallback in case AI fails
-      const fallbackId = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const fallbackId = rawName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
       return {
         canonicalName: rawName,
         brand: null,
@@ -187,29 +211,36 @@ export class AiService {
   /**
    * Conversational Assistant that uses Tool Calling to search the DB
    */
-  async chatWithAssistant(userMessage: string, history: any[] = []): Promise<string> {
+  async chatWithAssistant(
+    userMessage: string,
+    history: any[] = [],
+  ): Promise<string> {
     this.logger.debug(`Chat query: ${userMessage}`);
 
     try {
       // Define the tool for searching products
-      const tools = [{
-        functionDeclarations: [
-          {
-            name: 'search_products',
-            description: 'Search the supermarket database for products to find prices, availability, and stores.',
-            parameters: {
-              type: Type.OBJECT,
-              properties: {
-                query: {
-                  type: Type.STRING,
-                  description: 'The search term (e.g., "milk powder", "rice", "anchor")',
+      const tools = [
+        {
+          functionDeclarations: [
+            {
+              name: 'search_products',
+              description:
+                'Search the supermarket database for products to find prices, availability, and stores.',
+              parameters: {
+                type: Type.OBJECT,
+                properties: {
+                  query: {
+                    type: Type.STRING,
+                    description:
+                      'The search term (e.g., "milk powder", "rice", "anchor")',
+                  },
                 },
+                required: ['query'],
               },
-              required: ['query'],
             },
-          },
-        ],
-      }];
+          ],
+        },
+      ];
 
       const systemInstruction = `
         You are the Grocera AI Shopping Assistant for Sri Lanka. 
@@ -220,26 +251,26 @@ export class AiService {
 
       // Build conversation history format for Google Gen AI
       // The SDK expects an array of Content objects { role: 'user' | 'model', parts: [{text: '...'}] }
-      const contents: Content[] = history.map(msg => ({
+      const contents: Content[] = history.map((msg) => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
+        parts: [{ text: msg.content }],
       }));
-      
+
       // Append the new user message
       contents.push({
         role: 'user',
-        parts: [{ text: userMessage }]
+        parts: [{ text: userMessage }],
       });
 
-      let chatResponse = await this.executeWithFallback((aiClient, model) => 
+      let chatResponse = await this.executeWithFallback((aiClient, model) =>
         aiClient.models.generateContent({
           model: model,
           contents,
           config: {
             systemInstruction: { parts: [{ text: systemInstruction }] },
             tools,
-          }
-        })
+          },
+        }),
       );
 
       // Check if the AI decided to call the tool
@@ -247,30 +278,32 @@ export class AiService {
         const call = chatResponse.functionCalls[0];
         if (call.name === 'search_products') {
           const args = call.args as { query: string };
-          this.logger.log(`AI called search_products with query: ${args.query}`);
-          
+          this.logger.log(
+            `AI called search_products with query: ${args.query}`,
+          );
+
           // Execute Prisma query
           const products = await this.prisma.product.findMany({
             where: {
-              name: { contains: args.query, mode: 'insensitive' }
+              name: { contains: args.query, mode: 'insensitive' },
             },
             include: {
               store: true,
               prices: {
                 orderBy: { createdAt: 'desc' },
-                take: 1
-              }
+                take: 1,
+              },
             },
-            take: 20
+            take: 20,
           });
 
           // Format results for the AI
-          const searchResults = products.map(p => ({
+          const searchResults = products.map((p) => ({
             name: p.name,
             store: p.store.name,
             price: p.prices.length > 0 ? p.prices[0].price : 'Unknown',
             brand: p.brand,
-            weight: p.weight
+            weight: p.weight,
           }));
 
           // Send the tool response back to the model
@@ -280,32 +313,70 @@ export class AiService {
           }
           contents.push({
             role: 'user',
-            parts: [{
-              functionResponse: {
-                name: 'search_products',
-                response: { results: searchResults }
-              }
-            }]
+            parts: [
+              {
+                functionResponse: {
+                  name: 'search_products',
+                  response: { results: searchResults },
+                },
+              },
+            ],
           });
 
           // Get final response from AI
-          chatResponse = await this.executeWithFallback((aiClient, model) => 
+          chatResponse = await this.executeWithFallback((aiClient, model) =>
             aiClient.models.generateContent({
               model: model,
               contents,
               config: {
-                systemInstruction: { parts: [{ text: systemInstruction }] }
-              }
-            })
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+              },
+            }),
           );
         }
       }
 
       return chatResponse.text || "I'm sorry, I couldn't process that request.";
-
     } catch (error) {
       this.logger.error('Error in chatWithAssistant:', error);
       return "I'm currently experiencing technical difficulties. Please try again later.";
+    }
+  }
+
+  /**
+   * Generates a natural language explanation for a basket optimization result.
+   */
+  async generateOptimizationExplanation(
+    shoppingList: string[],
+    result: any,
+  ): Promise<string> {
+    this.logger.debug('Generating optimization explanation');
+    try {
+      const prompt = `
+        You are the Grocera AI Shopping Assistant. 
+        The user wants to buy: ${shoppingList.join(', ')}.
+        The optimization engine found this result:
+        ${JSON.stringify(result, null, 2)}
+        
+        Write a concise, friendly paragraph (max 3 sentences) explaining this result to the user.
+        Highlight the total savings and whether they need to visit multiple stores. Use LKR for currency.
+        Do not use markdown formatting like bolding or lists, just plain text.
+      `;
+
+      const response = await this.executeWithFallback((aiClient, model) =>
+        aiClient.models.generateContent({
+          model: model,
+          contents: prompt,
+          config: {
+            temperature: 0.3,
+          },
+        }),
+      );
+
+      return response.text || "We've optimized your basket to save you money!";
+    } catch (error) {
+      this.logger.error('Failed to generate optimization explanation', error);
+      return "We've optimized your basket to find the best possible prices.";
     }
   }
 }

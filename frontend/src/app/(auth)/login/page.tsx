@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -31,7 +32,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-sm">
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="w-full max-w-sm rounded-xl glass-card p-8 hover:shadow-xl transition-shadow duration-300"
+    >
         <div className="mb-6 flex flex-col items-center text-center">
           {/* Brand Logo Placeholder */}
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -87,6 +93,6 @@ export default function LoginPage() {
             Sign up
           </a>
         </div>
-      </div>
+      </motion.div>
   );
 }

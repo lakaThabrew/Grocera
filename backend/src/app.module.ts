@@ -8,11 +8,28 @@ import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ScrapingModule } from './scraping/scraping.module';
 import { AiModule } from './ai/ai.module';
+import { BasketsModule } from './baskets/baskets.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { ConsumersModule } from './consumers/consumers.module';
+import { BusinessModule } from './business/business.module';
+import { PublicApiModule } from './public-api/public-api.module';
+import { AdminModule } from './admin/admin.module';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { CacheModule } from '@nestjs/cache-manager';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
-    UsersModule, 
-    AuthModule, 
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100, // 100 requests per minute
+    }]),
+    CacheModule.register({
+      isGlobal: true, // Make cache available globally
+      ttl: 300000, // 5 minutes default TTL
+    }),
+    UsersModule,
+    AuthModule,
     PrismaModule,
     ScheduleModule.forRoot(),
     BullModule.forRoot({
@@ -23,8 +40,20 @@ import { AiModule } from './ai/ai.module';
     }),
     ScrapingModule,
     AiModule,
+    BasketsModule,
+    AnalyticsModule,
+    ConsumersModule,
+    BusinessModule,
+    PublicApiModule,
+    AdminModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

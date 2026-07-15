@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User, Sparkles, Loader2 } from "lucide-react";
+import { PageWrapper } from "@/components/layout/PageWrapper";
 
 interface Message {
   role: "user" | "assistant";
@@ -71,7 +72,8 @@ export default function AssistantPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)] max-w-5xl mx-auto w-full bg-card rounded-xl border shadow-sm overflow-hidden">
+    <PageWrapper className="h-[calc(100vh-7rem)] max-w-5xl mx-auto w-full">
+      <div className="flex flex-col h-full w-full glass-card rounded-xl overflow-hidden border-border/50">
       
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b bg-muted/30">
@@ -163,6 +165,7 @@ export default function AssistantPage() {
         </form>
       </div>
 
-    </div>
+      </div>
+    </PageWrapper>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { Play, Bot, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { PageWrapper } from '@/components/layout/PageWrapper';
 
 export default function ScraperControlPage() {
   const [store, setStore] = useState('Keells');
@@ -26,7 +27,7 @@ export default function ScraperControlPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <PageWrapper className="max-w-3xl mx-auto w-full">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Scraper Engine</h1>
         <p className="text-sm text-muted-foreground">
@@ -34,7 +35,7 @@ export default function ScraperControlPage() {
         </p>
       </div>
 
-      <div className="border border-border bg-card rounded-xl shadow-sm overflow-hidden">
+      <div className="glass-card rounded-xl overflow-hidden shadow-lg border-white/5">
         <div className="p-6 border-b border-border bg-muted/30">
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-lg bg-primary/20 flex items-center justify-center text-primary">
@@ -103,6 +104,6 @@ export default function ScraperControlPage() {
           </div>
         </form>
       </div>
-    </div>
+    </PageWrapper>
   );
 }

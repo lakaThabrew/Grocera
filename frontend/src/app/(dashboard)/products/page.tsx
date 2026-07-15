@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Package, Store as StoreIcon } from 'lucide-react';
+import { PageWrapper } from '@/components/layout/PageWrapper';
 
 interface Product {
   id: string;
@@ -32,7 +33,7 @@ export default function ProductsPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <PageWrapper>
       <div>
         <h1 className="text-2xl font-bold text-foreground">Products</h1>
         <p className="text-sm text-muted-foreground">
@@ -45,7 +46,7 @@ export default function ProductsPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : products.length === 0 ? (
-        <div className="text-center py-12 border border-border rounded-xl bg-card">
+        <div className="text-center py-12 glass-card rounded-xl">
           <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
           <h3 className="text-lg font-medium text-foreground">No products found</h3>
           <p className="text-muted-foreground text-sm mt-2">
@@ -55,8 +56,8 @@ export default function ProductsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => (
-            <div key={product.id} className="border border-border bg-card rounded-xl overflow-hidden hover:border-primary/50 transition-all shadow-sm">
-              <div className="p-4 border-b border-border bg-muted/30">
+            <div key={product.id} className="glass-card rounded-xl overflow-hidden hover:scale-[1.02] hover:shadow-xl hover:border-primary/30 transition-all duration-300 group cursor-pointer">
+              <div className="p-4 border-b border-border bg-muted/20 group-hover:bg-primary/5 transition-colors">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold px-2 py-1 bg-primary/10 text-primary rounded-full flex items-center gap-1">
                     <StoreIcon className="h-3 w-3" />
@@ -85,6 +86,6 @@ export default function ProductsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageWrapper>
   );
 }
