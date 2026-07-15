@@ -5,3 +5,4 @@ node_modules
 README.md
 npm-debug.log
 npm-debug.log.*
+.env*
