@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/useAuthStore"
-import { Users, Server, Activity, ShieldAlert, Trash2 } from "lucide-react"
+import { Users, Server, Activity, ShieldAlert, Trash2, ExternalLink } from "lucide-react"
 
 interface AdminStats {
   totalUsers: number;
@@ -29,7 +29,7 @@ interface SystemHealth {
 export default function AdminDashboard() {
   const router = useRouter()
   const { user, accessToken } = useAuthStore()
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'USERS' | 'HEALTH'>('OVERVIEW')
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'USERS' | 'HEALTH' | 'QUEUES'>('OVERVIEW')
 
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [users, setUsers] = useState<UserRecord[]>([])
@@ -113,6 +113,12 @@ export default function AdminDashboard() {
           className={`pb-2 px-4 font-medium transition-colors ${activeTab === 'HEALTH' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
         >
           System Health
+        </button>
+        <button 
+          onClick={() => setActiveTab('QUEUES')}
+          className={`pb-2 px-4 font-medium transition-colors ${activeTab === 'QUEUES' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Queue Management
         </button>
       </div>
 
@@ -211,6 +217,24 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'QUEUES' && (
+        <div className="bg-card rounded-xl border border-border overflow-hidden p-8 text-center flex flex-col items-center justify-center min-h-[300px]">
+          <Server className="w-16 h-16 text-muted-foreground mb-4" />
+          <h3 className="text-xl font-bold mb-2">BullMQ Queue Management</h3>
+          <p className="text-muted-foreground max-w-md mx-auto mb-6">
+            Monitor and manage background scraping jobs. The queue dashboard is protected by Basic Authentication. Use your admin credentials to log in.
+          </p>
+          <a 
+            href={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '')}/admin/queues`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            Open Dashboard <ExternalLink className="w-4 h-4" />
+          </a>
         </div>
       )}
     </div>

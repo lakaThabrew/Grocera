@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -17,6 +17,9 @@ import { AdminModule } from './admin/admin.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
 import { APP_GUARD } from '@nestjs/core';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { ExpressAdapter } from '@bull-board/express';
+import { BullBoardAuthMiddleware } from './admin/bull-board-auth.middleware';
 
 @Module({
   imports: [
@@ -38,6 +41,10 @@ import { APP_GUARD } from '@nestjs/core';
         port: parseInt(process.env.REDIS_PORT || '6379', 10),
       },
     }),
+    BullBoardModule.forRoot({
+      route: '/admin/queues',
+      adapter: ExpressAdapter,
+    }),
     ScrapingModule,
     AiModule,
     BasketsModule,
@@ -56,4 +63,10 @@ import { APP_GUARD } from '@nestjs/core';
     },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(BullBoardAuthMiddleware)
+      .forRoutes({ path: '/admin/queues*', method: RequestMethod.ALL });
+  }
+}
