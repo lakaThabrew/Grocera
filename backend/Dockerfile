@@ -38,4 +38,4 @@ RUN npx playwright install --with-deps chromium
 
 EXPOSE 3001
 
-CMD [ "npm", "run", "start:prod" ]
+CMD [ "sh", "-c", "npx prisma db push && npx prisma db seed && npm run start:prod" ]

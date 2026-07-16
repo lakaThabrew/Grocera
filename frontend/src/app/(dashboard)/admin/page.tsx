@@ -45,24 +45,24 @@ export default function AdminDashboard() {
     const headers = { Authorization: `Bearer ${accessToken}` }
     
     // Fetch stats
-    fetch('http://localhost:3001/api/v1/admin/stats', { headers })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/stats`, { headers })
       .then(res => res.json())
       .then(setStats)
 
     // Fetch users
-    fetch('http://localhost:3001/api/v1/admin/users', { headers })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/users`, { headers })
       .then(res => res.json())
       .then(data => setUsers(data.data || []))
 
     // Fetch health
-    fetch('http://localhost:3001/api/v1/admin/health', { headers })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/health`, { headers })
       .then(res => res.json())
       .then(setHealth)
   }, [user, accessToken, router])
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
-      await fetch(`http://localhost:3001/api/v1/admin/users/${userId}/role`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${userId}/role`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ role: newRole })
@@ -76,7 +76,7 @@ export default function AdminDashboard() {
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     try {
-      await fetch(`http://localhost:3001/api/v1/admin/users/${userId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/users/${userId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${accessToken}` }
       })
