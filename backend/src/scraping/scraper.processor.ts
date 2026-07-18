@@ -4,6 +4,9 @@ import { Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AiService } from '../ai/ai.service';
 import { KeellsScraper } from './strategies/keells.scraper';
+import { CargillsScraper } from './strategies/cargills.scraper';
+import { ArpicoScraper } from './strategies/arpico.scraper';
+import { GlomarkScraper } from './strategies/glomark.scraper';
 
 @Processor('scraping')
 export class ScraperProcessor extends WorkerHost {
@@ -31,12 +34,18 @@ export class ScraperProcessor extends WorkerHost {
         });
       }
 
-      let scraper: KeellsScraper | undefined;
+      let scraper: KeellsScraper | CargillsScraper | ArpicoScraper | GlomarkScraper | undefined;
 
       try {
         // Simple Factory based on store
         if (store.toLowerCase() === 'keells') {
           scraper = new KeellsScraper(this.prisma, this.aiService);
+        } else if (store.toLowerCase() === 'cargills') {
+          scraper = new CargillsScraper(this.prisma, this.aiService);
+        } else if (store.toLowerCase() === 'arpico') {
+          scraper = new ArpicoScraper(this.prisma, this.aiService);
+        } else if (store.toLowerCase() === 'glomark') {
+          scraper = new GlomarkScraper(this.prisma, this.aiService);
         } else {
           throw new Error(`Store ${store} not supported yet`);
         }
