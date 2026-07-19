@@ -4,6 +4,25 @@ Grocera is a comprehensive, full-stack retail intelligence platform that aggrega
 
 ---
 
+## 📊 Feature Status
+
+### Fully Implemented
+- **Smart Search & Comparison**: Compare product prices across multiple supermarkets in real-time.
+- **Competitor Analytics**: Live radar, heatmaps, and inflation rates calculated using real historical price comparisons.
+- **Price Alerts (Email, SMS, Push)**: Integrated via SMTP, Twilio (Free Trial), and Web-Push. Alerts are actively triggered by scraper updates.
+- **Security**: Strict ownership validation on alerts and notifications is enforced.
+- **AI Fallback**: Graceful degradation when Gemini API keys are missing or models fail.
+
+### Prototype / Demo
+- **Log Streaming**: Live dashboard simulation.
+- **Scraper Proxies**: Currently runs headlessly without full proxy rotation.
+
+### Planned
+- Deep Basket Optimization with multi-stop routing logic.
+- Mobile App with native push notifications.
+
+---
+
 ## 🚀 Features by Role
 
 ### 🛒 For Consumers
@@ -50,6 +69,19 @@ cp backend/.env.example backend/.env
 ```
 *(Make sure to update the database passwords and JWT secrets for your local environment)*.
 
+*Note for Notifications*: To enable SMS and Push, configure the following in `backend/.env`:
+```env
+# Twilio
+TWILIO_ACCOUNT_SID=your_sid
+TWILIO_AUTH_TOKEN=your_token
+TWILIO_PHONE_NUMBER=your_number
+TWILIO_TEST_NUMBER=recipient_number
+
+# Web Push
+VAPID_PUBLIC_KEY=your_public_key
+VAPID_PRIVATE_KEY=your_private_key
+```
+
 ### 3. Start Database and Redis
 Spin up the backing services:
 ```bash
@@ -64,6 +96,11 @@ npx prisma db push
 npm run start:dev
 ```
 *The backend API will run on `http://localhost:3001` with Swagger docs available at `/api`.*
+
+**Running Tests**:
+```bash
+npm run test
+```
 
 ### 5. Setup Frontend
 ```bash

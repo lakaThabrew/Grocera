@@ -7,6 +7,7 @@ import { ScrapingController } from './scraping.controller';
 import { ScraperProcessor } from './scraper.processor';
 import { PrismaModule } from '../prisma.module';
 import { AiModule } from '../ai/ai.module';
+import { ConsumersModule } from '../consumers/consumers.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AiModule } from '../ai/ai.module';
     }),
     PrismaModule,
     AiModule,
+    ConsumersModule,
   ],
   controllers: [ScrapingController],
   providers: [ScrapingService, ScraperProcessor],

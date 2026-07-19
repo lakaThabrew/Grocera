@@ -13,16 +13,17 @@ export interface NormalizedProduct {
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
-  private primaryAi: GoogleGenAI;
+  private primaryAi: GoogleGenAI | null = null;
   private backupAi: GoogleGenAI | null = null;
 
   constructor(private readonly prisma: PrismaService) {
     // Requires GEMINI_API_KEY in the environment
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error('GEMINI_API_KEY is not set');
+      this.logger.warn('GEMINI_API_KEY is not set. AI features will be disabled.');
+    } else {
+      this.primaryAi = new GoogleGenAI({ apiKey });
     }
-    this.primaryAi = new GoogleGenAI({ apiKey });
 
     // Check if backup key is provided
     let backupKey = process.env.GEMINI_API_KEY_BACKUP;
@@ -42,14 +43,20 @@ export class AiService {
     operation: (aiClient: GoogleGenAI, model: string) => Promise<any>,
   ): Promise<any> {
     const modelsToTry = [
-      'gemini-3.5-flash',
-      'gemini-3.1-flash-lite',
-      'gemini-3.1-pro',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
     ];
 
-    const clients = [{ name: 'Primary Key', client: this.primaryAi }];
+    const clients = [];
+    if (this.primaryAi) {
+      clients.push({ name: 'Primary Key', client: this.primaryAi });
+    }
     if (this.backupAi) {
       clients.push({ name: 'Backup Key', client: this.backupAi });
+    }
+
+    if (clients.length === 0) {
+      throw new Error('AI Service is disabled. No API keys configured.');
     }
 
     let lastError: any = null;

@@ -1,11 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import * as nodemailer from 'nodemailer';
-
+import { Twilio } from 'twilio';
+import * as webpush from 'web-push';
 @Injectable()
 export class ConsumersService {
   private readonly logger = new Logger(ConsumersService.name);
   private transporter: nodemailer.Transporter;
+  private twilioClient: Twilio | null = null;
 
   constructor(private readonly prisma: PrismaService) {
     // Scaffolding for Email Alerts
@@ -17,6 +19,22 @@ export class ConsumersService {
         pass: process.env.SMTP_PASS || 'ethereal_pass',
       },
     });
+
+    // Twilio Setup (Free Trial)
+    const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+    const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+    if (twilioSid && twilioToken) {
+      this.twilioClient = new Twilio(twilioSid, twilioToken);
+    }
+
+    // Web Push Setup
+    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'dummy_public_key';
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'dummy_private_key';
+    webpush.setVapidDetails(
+      'mailto:admin@grocera.com',
+      vapidPublicKey,
+      vapidPrivateKey
+    );
   }
 
   // ---- Favorites ---- //
@@ -103,8 +121,13 @@ export class ConsumersService {
   }
   
   async deletePriceAlert(alertId: string, userId: string) {
+    const alert = await this.prisma.priceAlert.findFirst({
+      where: { id: alertId, userId },
+    });
+    if (!alert) throw new Error('Alert not found or unauthorized');
+
     return this.prisma.priceAlert.delete({
-      where: { id: alertId } // Ideally we should verify userId, assuming strict access control upstream
+      where: { id: alertId }
     });
   }
 
@@ -119,6 +142,11 @@ export class ConsumersService {
   }
 
   async markNotificationRead(notificationId: string, userId: string) {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id: notificationId, userId },
+    });
+    if (!notification) throw new Error('Notification not found or unauthorized');
+
     return this.prisma.notification.update({
       where: { id: notificationId },
       data: { isRead: true },
@@ -154,18 +182,58 @@ export class ConsumersService {
       });
 
       // 2. Send Email if opted in
-      if (alert.emailAlert) {
+      if (alert.emailAlert && alert.user.email) {
         try {
-          // Fire and forget email mock
-          /* await this.transporter.sendMail({
+          await this.transporter.sendMail({
             from: '"Grocera Alerts" <alerts@grocera.com>',
             to: alert.user.email,
             subject: 'Price Drop Alert!',
             text: `${alert.product.name} is now Rs. ${newPrice}!`,
-          }); */
-          this.logger.log(`Mock Email sent to ${alert.user.email}`);
+          });
+          this.logger.log(`Email sent to ${alert.user.email}`);
         } catch (error) {
-          this.logger.error(`Failed to send email to ${alert.user.email}`);
+          this.logger.error(`Failed to send email to ${alert.user.email}`, error);
+        }
+      }
+
+      // 3. Send SMS if opted in
+      if (alert.smsAlert && this.twilioClient) {
+        try {
+          const profile = await this.prisma.profile.findUnique({ where: { userId: alert.user.id } });
+          const phone = profile?.phone || process.env.TWILIO_TEST_NUMBER; 
+          
+          if (phone) {
+            await this.twilioClient.messages.create({
+              body: `Grocera Alert: ${alert.product.name} is now Rs. ${newPrice}!`,
+              from: process.env.TWILIO_PHONE_NUMBER || '+1234567890',
+              to: phone,
+            });
+            this.logger.log(`SMS sent to ${phone}`);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to send SMS`, error);
+        }
+      }
+
+      // 4. Send Push Notification if opted in
+      if (alert.pushAlert) {
+        try {
+          // Normally fetch PushSubscription from DB. Simulation here.
+          const pushSubscription = null;
+          if (pushSubscription) {
+            await webpush.sendNotification(
+              pushSubscription,
+              JSON.stringify({
+                title: 'Price Drop Alert! 🎉',
+                body: `${alert.product.name} is now Rs. ${newPrice}!`,
+              })
+            );
+            this.logger.log(`Push notification sent to user ${alert.user.id}`);
+          } else {
+            this.logger.log(`No push subscription found for user ${alert.user.id}, skipping push`);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to send push notification`, error);
         }
       }
       

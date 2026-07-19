@@ -2,6 +2,7 @@ import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { AiService } from '../../ai/ai.service';
+import { ConsumersService } from '../../consumers/consumers.service';
 
 export abstract class BaseScraper {
   protected browser: Browser;
@@ -12,6 +13,7 @@ export abstract class BaseScraper {
   constructor(
     protected readonly prisma: PrismaService,
     protected readonly aiService: AiService,
+    protected readonly consumersService: ConsumersService,
   ) {}
 
   async init() {
@@ -109,5 +111,12 @@ export abstract class BaseScraper {
     this.logger.log(
       `Saved normalized product: ${normalized.canonicalName} (Original: ${data.name}) - Rs ${data.price}`,
     );
+
+    // Process Price Alerts
+    try {
+      await this.consumersService.processPriceAlerts(product.id, data.price);
+    } catch (error) {
+      this.logger.error(`Failed to process price alerts for product ${product.id}`, error);
+    }
   }
 }

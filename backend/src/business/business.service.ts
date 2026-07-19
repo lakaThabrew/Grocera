@@ -95,25 +95,54 @@ export class BusinessService {
     this.logger.debug(`Generating competitor radar for store ${storeId}`);
     
     const categories = await this.prisma.category.findMany();
+    const radarData = [];
     
-    // Mock radar data generation since deep aggregation is expensive
-    // The metric is "Competitiveness Score" (0-100) where 100 means we are cheapest by a wide margin
-    
-    const radarData = categories.map(cat => {
-      // Simulate real calculation: 
-      // 1. Get average price of our products in this category
-      // 2. Get average price of competitor products in this category
-      // 3. Score = (CompetitorAvg / OurAvg) * 50
+    for (const cat of categories) {
+      const allProductsInCategory = await this.prisma.product.findMany({
+        where: { categoryId: cat.id, canonicalId: { not: null } },
+        include: { prices: { orderBy: { createdAt: 'desc' }, take: 1 } }
+      });
+
+      const canonicalGroups: Record<string, number[]> = {};
+      for (const p of allProductsInCategory) {
+        if (!p.canonicalId || p.prices.length === 0) continue;
+        if (!canonicalGroups[p.canonicalId]) canonicalGroups[p.canonicalId] = [];
+        
+        if (p.storeId !== storeId) {
+          canonicalGroups[p.canonicalId].push(p.prices[0].price);
+        }
+      }
+
+      let ourTotal = 0;
+      let compTotal = 0;
+      let comparisons = 0;
+
+      for (const p of allProductsInCategory) {
+        if (p.storeId === storeId && p.canonicalId && p.prices.length > 0) {
+          const compPrices = canonicalGroups[p.canonicalId];
+          if (compPrices && compPrices.length > 0) {
+            const avgCompPrice = compPrices.reduce((a, b) => a + b, 0) / compPrices.length;
+            ourTotal += p.prices[0].price;
+            compTotal += avgCompPrice;
+            comparisons++;
+          }
+        }
+      }
+
+      let score = 50; 
+      const marketAvg = 50; 
+      if (comparisons > 0) {
+        const ourAvg = ourTotal / comparisons;
+        const compAvg = compTotal / comparisons;
+        score = Math.min(100, Math.max(0, (compAvg / ourAvg) * 50));
+      }
       
-      const score = Math.floor(Math.random() * 40) + 40; // Random between 40-80 for demo
-      const marketAvg = 60; // Baseline
-      
-      return {
+      radarData.push({
         category: cat.name,
-        ourScore: score,
+        ourScore: Math.round(score),
         marketAverage: marketAvg,
-      };
-    });
+      });
+    }
 
     return radarData;
   }
@@ -133,11 +162,31 @@ export class BusinessService {
     for (const cat of categories) {
       const row: any = { category: cat.name };
       
+      const products = await this.prisma.product.findMany({
+        where: { categoryId: cat.id, canonicalId: { not: null } },
+        include: { prices: { orderBy: { createdAt: 'desc' }, take: 1 } }
+      });
+
       for (const comp of competitors) {
-        // Calculate average percentage difference in this category
-        // Positive means we are cheaper, Negative means we are more expensive
-        const difference = (Math.random() * 20) - 10; 
-        row[comp.name] = Number(difference.toFixed(2));
+        let diffSum = 0;
+        let count = 0;
+
+        const ourProducts = products.filter(p => p.storeId === storeId && p.prices.length > 0);
+        const compProducts = products.filter(p => p.storeId === comp.id && p.prices.length > 0);
+
+        for (const op of ourProducts) {
+          const matchingComp = compProducts.find(cp => cp.canonicalId === op.canonicalId);
+          if (matchingComp) {
+            const ourPrice = op.prices[0].price;
+            const compPrice = matchingComp.prices[0].price;
+            const difference = ((compPrice - ourPrice) / compPrice) * 100;
+            diffSum += difference;
+            count++;
+          }
+        }
+
+        const avgDifference = count > 0 ? diffSum / count : 0;
+        row[comp.name] = Number(avgDifference.toFixed(2));
       }
       
       heatmapData.push(row);
