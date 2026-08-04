@@ -1,11 +1,12 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
-import { PageWrapper } from '@/components/layout/PageWrapper';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Trash2, Store, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { api } from "@/lib/api";
+import { PageWrapper } from "@/components/layout/PageWrapper";
+import { motion, AnimatePresence } from "framer-motion";
+import { Heart, Store, ExternalLink } from "lucide-react";
+import Link from "next/link";
 
 interface FavoriteProduct {
   id: string;
@@ -29,10 +30,12 @@ export default function FavoritesPage() {
 
   const fetchFavorites = async () => {
     try {
-      const res = await api.get('/consumers/favorites/products');
+      const res = await api.get("/consumers/favorites/products");
       setFavorites(res.data);
     } catch (error) {
-      console.error('Failed to fetch favorites:', error);
+      if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+        console.error("Failed to fetch favorites:", error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -41,9 +44,9 @@ export default function FavoritesPage() {
   const removeFavorite = async (productId: string, id: string) => {
     try {
       await api.post(`/consumers/favorites/products/${productId}`);
-      setFavorites(favorites.filter(f => f.id !== id));
+      setFavorites(favorites.filter((f) => f.id !== id));
     } catch (error) {
-      console.error('Failed to remove favorite', error);
+      console.error("Failed to remove favorite", error);
     }
   };
 
@@ -68,11 +71,17 @@ export default function FavoritesPage() {
       ) : favorites.length === 0 ? (
         <div className="text-center p-16 glass-card rounded-xl border border-dashed border-white/10">
           <Heart className="h-12 w-12 mx-auto text-muted-foreground opacity-30 mb-4" />
-          <h3 className="text-lg font-medium text-foreground">Your wishlist is empty</h3>
+          <h3 className="text-lg font-medium text-foreground">
+            Your wishlist is empty
+          </h3>
           <p className="text-muted-foreground mt-1 max-w-sm mx-auto mb-6">
-            When you see something you like, tap the heart icon to save it here for later.
+            When you see something you like, tap the heart icon to save it here
+            for later.
           </p>
-          <Link href="/products" className="px-6 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 transition-colors">
+          <Link
+            href="/products"
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 transition-colors"
+          >
             Discover Products
           </Link>
         </div>
@@ -92,8 +101,8 @@ export default function FavoritesPage() {
                   {/* Placeholder for Product Image */}
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent mix-blend-overlay"></div>
                   <Store className="h-12 w-12 text-muted-foreground/30" />
-                  
-                  <button 
+
+                  <button
                     onClick={() => removeFavorite(item.product.id, item.id)}
                     className="absolute top-3 right-3 h-8 w-8 rounded-full bg-background/50 backdrop-blur flex items-center justify-center text-pink-500 hover:bg-pink-500 hover:text-white transition-all shadow-sm"
                     title="Remove from wishlist"
@@ -101,7 +110,7 @@ export default function FavoritesPage() {
                     <Heart className="h-4 w-4 fill-current" />
                   </button>
                 </div>
-                
+
                 <div className="p-4">
                   <div className="text-xs font-semibold text-primary/80 uppercase tracking-wider mb-1">
                     {item.product.store.name}
@@ -109,15 +118,17 @@ export default function FavoritesPage() {
                   <h3 className="font-semibold text-foreground line-clamp-2 min-h-[40px] mb-2">
                     {item.product.name}
                   </h3>
-                  
+
                   <div className="flex items-end justify-between mt-4">
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Current Price</p>
+                      <p className="text-[10px] text-muted-foreground uppercase mb-0.5">
+                        Current Price
+                      </p>
                       <p className="font-bold text-lg leading-none">
-                        Rs. {item.product.prices[0]?.price || 'N/A'}
+                        Rs. {item.product.prices[0]?.price || "N/A"}
                       </p>
                     </div>
-                    <Link 
+                    <Link
                       href={`/products/${item.product.id}`}
                       className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
                     >
