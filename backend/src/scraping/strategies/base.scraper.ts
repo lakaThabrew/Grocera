@@ -116,7 +116,10 @@ export abstract class BaseScraper {
     try {
       await this.consumersService.processPriceAlerts(product.id, data.price);
     } catch (error) {
-      this.logger.error(`Failed to process price alerts for product ${product.id}`, error);
+      this.logger.error(
+        `Failed to process price alerts for product ${product.id}`,
+        error,
+      );
     }
   }
 }

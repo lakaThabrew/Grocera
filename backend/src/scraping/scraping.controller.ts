@@ -14,7 +14,6 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
 @Controller('scraping')
 export class ScrapingController {
   constructor(
@@ -22,17 +21,19 @@ export class ScrapingController {
     private readonly prisma: PrismaService,
   ) {}
 
+  @Roles(Role.ADMIN)
   @Post('trigger')
   async triggerScrape(@Body() body: { store: string; categoryUrl: string }) {
-    if (body.store.toLowerCase() !== 'keells') {
-      throw new BadRequestException('Store not supported');
+    const store = body.store ? body.store.toLowerCase() : '';
+    const supportedStores = ['keells', 'cargills', 'arpico', 'glomark'];
+    if (!supportedStores.includes(store)) {
+      throw new BadRequestException(
+        'Store not supported. Choose Keells, Cargills, Arpico, or Glomark.',
+      );
     }
 
     try {
-      const url = new URL(body.categoryUrl);
-      if (!url.hostname.includes('keellssuper.com')) {
-        throw new BadRequestException('Invalid category URL for Keells');
-      }
+      new URL(body.categoryUrl);
     } catch {
       throw new BadRequestException('Invalid category URL');
     }
@@ -41,7 +42,7 @@ export class ScrapingController {
       body.store,
       body.categoryUrl,
     );
-    return { message: 'Scraping job queued successfully' };
+    return { message: `Scraping job for ${body.store} queued successfully!` };
   }
 
   @Get('products')

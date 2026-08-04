@@ -36,18 +36,39 @@ export class ScraperProcessor extends WorkerHost {
         });
       }
 
-      let scraper: KeellsScraper | CargillsScraper | ArpicoScraper | GlomarkScraper | undefined;
+      let scraper:
+        | KeellsScraper
+        | CargillsScraper
+        | ArpicoScraper
+        | GlomarkScraper
+        | undefined;
 
       try {
         // Simple Factory based on store
         if (store.toLowerCase() === 'keells') {
-          scraper = new KeellsScraper(this.prisma, this.aiService, this.consumersService);
+          scraper = new KeellsScraper(
+            this.prisma,
+            this.aiService,
+            this.consumersService,
+          );
         } else if (store.toLowerCase() === 'cargills') {
-          scraper = new CargillsScraper(this.prisma, this.aiService, this.consumersService);
+          scraper = new CargillsScraper(
+            this.prisma,
+            this.aiService,
+            this.consumersService,
+          );
         } else if (store.toLowerCase() === 'arpico') {
-          scraper = new ArpicoScraper(this.prisma, this.aiService, this.consumersService);
+          scraper = new ArpicoScraper(
+            this.prisma,
+            this.aiService,
+            this.consumersService,
+          );
         } else if (store.toLowerCase() === 'glomark') {
-          scraper = new GlomarkScraper(this.prisma, this.aiService, this.consumersService);
+          scraper = new GlomarkScraper(
+            this.prisma,
+            this.aiService,
+            this.consumersService,
+          );
         } else {
           throw new Error(`Store ${store} not supported yet`);
         }

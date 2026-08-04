@@ -20,13 +20,13 @@ export class GlomarkScraper extends BaseScraper {
     for (const card of productCards) {
       const name = $(card).find('.product-title').text().trim();
       let priceStr = $(card).find('.price strong.clr-txt').text().trim();
-      
+
       // Fallback if the strong tag isn't there (e.g. non-discounted items)
       if (!priceStr) {
         // Only take the first text node to avoid getting both new and old prices mashed together if structure differs
         priceStr = $(card).find('.price').contents().first().text().trim();
       }
-      
+
       priceStr = priceStr.replace(/[^\d.]/g, '');
       const price = parseFloat(priceStr);
 
