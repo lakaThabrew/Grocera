@@ -22,6 +22,7 @@ Thumbs.db
 
 # Next.js (Frontend)
 frontend/.next/
+frontend/.next-dev/
 frontend/out/
 frontend/build/
 .next/

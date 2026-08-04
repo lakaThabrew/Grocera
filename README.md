@@ -102,6 +102,12 @@ npm run start:dev
 npm run test
 ```
 
+### Development demo login
+
+After running the database seed, sign in with `demo.consumer@grocera.test` and
+`Demo12345!`. This account is intended for local development only; do not use
+these credentials on a public deployment.
+
 ### 5. Setup Frontend
 ```bash
 cd frontend
