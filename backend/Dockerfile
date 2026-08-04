@@ -28,6 +28,8 @@ RUN apt-get update && apt-get install -y openssl
 
 WORKDIR /app
 
+ENV NODE_ENV=production
+
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
@@ -38,4 +40,4 @@ RUN npx playwright install --with-deps chromium
 
 EXPOSE 3001
 
-CMD [ "npm", "run", "start:prod" ]
+CMD [ "sh", "-c", "npx prisma db push && npx prisma db seed && npm run start:prod" ]

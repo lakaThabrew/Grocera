@@ -36,7 +36,7 @@ export class BasketsService {
 
   async optimizeBasket(shoppingList: string[]): Promise<OptimizationResult> {
     this.logger.log(`Optimizing basket for: ${shoppingList.join(', ')}`);
-    
+
     // 1. Fetch lowest prices for each item across all stores
     const itemPrices: Record<string, OptimizedItem[]> = {};
 
@@ -56,16 +56,19 @@ export class BasketsService {
       });
 
       // Filter products that have a price
-      const productsWithPrices = products.filter(p => p.prices.length > 0);
-      
+      const productsWithPrices = products.filter((p) => p.prices.length > 0);
+
       // Group by store and find the absolute cheapest product matching this item per store
       const storeBestPrices = new Map<string, OptimizedItem>();
-      
+
       for (const p of productsWithPrices) {
         const storeName = p.store.name;
         const price = p.prices[0].price;
-        
-        if (!storeBestPrices.has(storeName) || storeBestPrices.get(storeName)!.price > price) {
+
+        if (
+          !storeBestPrices.has(storeName) ||
+          storeBestPrices.get(storeName)!.price > price
+        ) {
           storeBestPrices.set(storeName, {
             itemName: item,
             matchedProduct: p.name,
@@ -74,12 +77,12 @@ export class BasketsService {
           });
         }
       }
-      
+
       itemPrices[item] = Array.from(storeBestPrices.values());
     }
 
     // 2. Calculate Multi-Store Strategy (Absolute cheapest for each item regardless of store)
-    let multiStoreItems: OptimizedItem[] = [];
+    const multiStoreItems: OptimizedItem[] = [];
     let multiStoreTotal = 0;
     const multiStoreSet = new Set<string>();
 
@@ -94,9 +97,12 @@ export class BasketsService {
         multiStoreSet.add(best.store);
       }
     }
-    
+
     // Travel cost: 0 for 1 store, 200 for 2 stores, 400 for 3 stores...
-    const multiStoreTravelCost = multiStoreSet.size > 1 ? (multiStoreSet.size - 1) * this.TRAVEL_COST_PER_EXTRA_STORE : 0;
+    const multiStoreTravelCost =
+      multiStoreSet.size > 1
+        ? (multiStoreSet.size - 1) * this.TRAVEL_COST_PER_EXTRA_STORE
+        : 0;
     const multiStoreEffectiveTotal = multiStoreTotal + multiStoreTravelCost;
 
     // 3. Calculate Single-Store Strategies (Buy everything at one store if possible)
@@ -109,9 +115,15 @@ export class BasketsService {
       const options = itemPrices[item];
       if (options) {
         for (const opt of options) {
-          storeCompleteness.set(opt.store, (storeCompleteness.get(opt.store) || 0) + 1);
-          storeTotals.set(opt.store, (storeTotals.get(opt.store) || 0) + opt.price);
-          
+          storeCompleteness.set(
+            opt.store,
+            (storeCompleteness.get(opt.store) || 0) + 1,
+          );
+          storeTotals.set(
+            opt.store,
+            (storeTotals.get(opt.store) || 0) + opt.price,
+          );
+
           if (!storeItems.has(opt.store)) storeItems.set(opt.store, []);
           storeItems.get(opt.store)!.push(opt);
         }
@@ -141,27 +153,30 @@ export class BasketsService {
     let winningTotal = bestSingleStoreTotal;
     let winningTravelCost = 0;
     let storesToVisit = [bestSingleStoreName];
-    
+
     // If multi-store with travel cost is STILL cheaper than single store, use multi-store
     // Or if no single store had all items (bestSingleStoreTotal is Infinity)
-    if (bestSingleStoreTotal === Infinity || multiStoreEffectiveTotal < bestSingleStoreTotal) {
+    if (
+      bestSingleStoreTotal === Infinity ||
+      multiStoreEffectiveTotal < bestSingleStoreTotal
+    ) {
       winner = 'MULTI_STORE';
       winningItems = multiStoreItems;
       winningTotal = multiStoreTotal;
       winningTravelCost = multiStoreTravelCost;
       storesToVisit = Array.from(multiStoreSet);
     }
-    
+
     // Calculate savings
     // Max possible cost if bought at most expensive stores vs our winning strategy
     let maxCost = 0;
     for (const item of shoppingList) {
       const options = itemPrices[item];
       if (options && options.length > 0) {
-        maxCost += Math.max(...options.map(o => o.price));
+        maxCost += Math.max(...options.map((o) => o.price));
       }
     }
-    const savings = maxCost > 0 ? (maxCost - winningTotal) : 0;
+    const savings = maxCost > 0 ? maxCost - winningTotal : 0;
 
     // Build base result
     const result: OptimizationResult = {
@@ -173,24 +188,27 @@ export class BasketsService {
       items: winningItems,
       aiExplanation: '',
     };
-    
+
     // Add alternative for comparison
     if (winner === 'MULTI_STORE' && bestSingleStoreTotal !== Infinity) {
       result.alternative = {
         strategy: 'SINGLE_STORE',
         totalCost: bestSingleStoreTotal,
-        storesToVisit: [bestSingleStoreName]
+        storesToVisit: [bestSingleStoreName],
       };
     } else if (winner === 'SINGLE_STORE' && multiStoreSet.size > 1) {
       result.alternative = {
         strategy: 'MULTI_STORE',
         totalCost: multiStoreEffectiveTotal,
-        storesToVisit: Array.from(multiStoreSet)
+        storesToVisit: Array.from(multiStoreSet),
       };
     }
 
     // 4. Ask AI to explain the result
-    const aiExplanation = await this.aiService.generateOptimizationExplanation(shoppingList, result);
+    const aiExplanation = await this.aiService.generateOptimizationExplanation(
+      shoppingList,
+      result,
+    );
     result.aiExplanation = aiExplanation;
 
     return result;

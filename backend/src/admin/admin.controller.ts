@@ -1,9 +1,18 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { Role } from '@prisma/client';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Admin Panel')
@@ -22,10 +31,7 @@ export class AdminController {
 
   @Get('users')
   @ApiOperation({ summary: 'Get paginated users list' })
-  async getUsers(
-    @Query('skip') skip?: string,
-    @Query('take') take?: string,
-  ) {
+  async getUsers(@Query('skip') skip?: string, @Query('take') take?: string) {
     return this.adminService.getUsers(
       skip ? parseInt(skip, 10) : 0,
       take ? parseInt(take, 10) : 20,

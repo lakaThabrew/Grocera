@@ -1,11 +1,22 @@
-import { Controller, Get, Param, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { PublicApiService } from './public-api.service';
 import { ApiKeyGuard } from '../auth/api-key.guard';
-import { ApiTags, ApiOperation, ApiQuery, ApiHeader, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiQuery, ApiHeader } from '@nestjs/swagger';
 import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 
 @ApiTags('Public API (External)')
-@ApiHeader({ name: 'X-API-Key', description: 'Your public API Key', required: true })
+@ApiHeader({
+  name: 'X-API-Key',
+  description: 'Your public API Key',
+  required: true,
+})
 @Controller({ path: 'public', version: '1' })
 @UseGuards(ApiKeyGuard)
 export class PublicApiController {

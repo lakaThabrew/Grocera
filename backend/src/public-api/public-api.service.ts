@@ -7,7 +7,13 @@ export class PublicApiService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getProducts(skip: number = 0, take: number = 20, search?: string, categoryId?: string, storeId?: string) {
+  async getProducts(
+    skip: number = 0,
+    take: number = 20,
+    search?: string,
+    categoryId?: string,
+    storeId?: string,
+  ) {
     const where: any = {};
     if (search) {
       where.name = { contains: search, mode: 'insensitive' };
@@ -27,7 +33,11 @@ export class PublicApiService {
         include: {
           category: { select: { id: true, name: true } },
           store: { select: { id: true, name: true } },
-          prices: { orderBy: { createdAt: 'desc' }, take: 1, select: { price: true, currency: true } },
+          prices: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { price: true, currency: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),

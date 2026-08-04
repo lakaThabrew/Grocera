@@ -1,21 +1,36 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
-import { PageWrapper } from '@/components/layout/PageWrapper';
-import { exportToCSV, exportElementToPDF } from '@/lib/exportUtils';
-import { 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  AreaChart, Area, BarChart, Bar
-} from 'recharts';
-import { TrendingUp, TrendingDown, Activity, Download, FileText, BarChart3, AlertTriangle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
+import { PageWrapper } from "@/components/layout/PageWrapper";
+import { exportToCSV, exportElementToPDF } from "@/lib/exportUtils";
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+} from "recharts";
+import {
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Download,
+  FileText,
+  BarChart3,
+  AlertTriangle,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
 // Mock Data Interfaces
 interface MarketInflation {
   period: string;
   inflationRate: number;
-  trend: 'UP' | 'DOWN' | 'STABLE';
+  trend: "UP" | "DOWN" | "STABLE";
   categoryBreakdown: Array<{ category: string; rate: number }>;
   historicalIndex: Array<{ date: string; indexValue: number }>;
 }
@@ -27,26 +42,26 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await api.get('/analytics/inflation');
+        const res = await api.get("/analytics/inflation");
         setMarketData(res.data);
       } catch (error) {
-        console.error('Failed to fetch analytics:', error);
+        console.error("Failed to fetch analytics:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchAnalytics();
   }, []);
 
   const handleExportCSV = () => {
     if (marketData?.historicalIndex) {
-      exportToCSV(marketData.historicalIndex, 'market_inflation_data');
+      exportToCSV(marketData.historicalIndex, "market_inflation_data");
     }
   };
 
   const handleExportPDF = () => {
-    exportElementToPDF('analytics-dashboard', 'Grocera_Market_Analytics');
+    exportElementToPDF("analytics-dashboard", "Grocera_Market_Analytics");
   };
 
   if (isLoading) {
@@ -83,13 +98,13 @@ export default function AnalyticsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={handleExportCSV}
               className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-muted/50 hover:bg-muted text-foreground rounded-md border border-border transition-colors"
             >
               <Download className="h-4 w-4" /> CSV
             </button>
-            <button 
+            <button
               onClick={handleExportPDF}
               className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors shadow-sm"
             >
@@ -100,7 +115,7 @@ export default function AnalyticsPage() {
 
         {/* KPI Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -109,43 +124,56 @@ export default function AnalyticsPage() {
             <div className="absolute -right-4 -top-4 opacity-5">
               <Activity className="h-24 w-24" />
             </div>
-            <p className="text-sm text-muted-foreground font-medium mb-1">Market Inflation (6M)</p>
+            <p className="text-sm text-muted-foreground font-medium mb-1">
+              Market Inflation (6M)
+            </p>
             <div className="flex items-end gap-3">
               <h2 className="text-4xl font-bold tracking-tight">
-                {marketData.inflationRate > 0 ? '+' : ''}{marketData.inflationRate}%
+                {marketData.inflationRate > 0 ? "+" : ""}
+                {marketData.inflationRate}%
               </h2>
-              <span className={`flex items-center text-sm font-medium mb-1 ${
-                marketData.trend === 'UP' ? 'text-destructive' : 'text-emerald-500'
-              }`}>
-                {marketData.trend === 'UP' ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+              <span
+                className={`flex items-center text-sm font-medium mb-1 ${
+                  marketData.trend === "UP"
+                    ? "text-destructive"
+                    : "text-emerald-500"
+                }`}
+              >
+                {marketData.trend === "UP" ? (
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 mr-1" />
+                )}
                 {marketData.trend}
               </span>
             </div>
           </motion.div>
 
           {marketData.categoryBreakdown.slice(0, 2).map((cat, i) => (
-             <motion.div 
-             key={cat.category}
-             initial={{ opacity: 0, y: 10 }}
-             animate={{ opacity: 1, y: 0 }}
-             transition={{ delay: 0.1 + (i + 1) * 0.1 }}
-             className="glass-card p-6 rounded-xl"
-           >
-             <p className="text-sm text-muted-foreground font-medium mb-1">{cat.category} Inflation</p>
-             <div className="flex items-end gap-3">
-               <h2 className="text-3xl font-bold text-foreground/90">
-                 {cat.rate > 0 ? '+' : ''}{cat.rate}%
-               </h2>
-             </div>
-           </motion.div>
+            <motion.div
+              key={cat.category}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + (i + 1) * 0.1 }}
+              className="glass-card p-6 rounded-xl"
+            >
+              <p className="text-sm text-muted-foreground font-medium mb-1">
+                {cat.category} Inflation
+              </p>
+              <div className="flex items-end gap-3">
+                <h2 className="text-3xl font-bold text-foreground/90">
+                  {cat.rate > 0 ? "+" : ""}
+                  {cat.rate}%
+                </h2>
+              </div>
+            </motion.div>
           ))}
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
           {/* Main Trend Area Chart */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
@@ -154,28 +182,67 @@ export default function AnalyticsPage() {
             <h3 className="font-semibold text-lg mb-6">Price Index Trend</h3>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={marketData.historicalIndex} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <AreaChart
+                  data={marketData.historicalIndex}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
                   <defs>
                     <linearGradient id="colorIndex" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      <stop
+                        offset="5%"
+                        stopColor="hsl(var(--primary))"
+                        stopOpacity={0.3}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="hsl(var(--primary))"
+                        stopOpacity={0}
+                      />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    vertical={false}
                   />
-                  <Area type="monotone" dataKey="indexValue" name="Price Index" stroke="hsl(var(--primary))" strokeWidth={3} fillOpacity={1} fill="url(#colorIndex)" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    domain={["dataMin - 5", "dataMax + 5"]}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      borderColor: "hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                    itemStyle={{ color: "hsl(var(--foreground))" }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="indexValue"
+                    name="Price Index"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorIndex)"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </motion.div>
 
           {/* Category Bar Chart */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
@@ -184,15 +251,46 @@ export default function AnalyticsPage() {
             <h3 className="font-semibold text-lg mb-6">By Category</h3>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={marketData.categoryBreakdown} layout="vertical" margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} hide />
-                  <YAxis dataKey="category" type="category" stroke="hsl(var(--foreground))" fontSize={13} fontWeight={500} tickLine={false} axisLine={false} />
-                  <Tooltip 
-                    cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2 }}
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                <BarChart
+                  data={marketData.categoryBreakdown}
+                  layout="vertical"
+                  margin={{ top: 0, right: 0, left: 10, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    horizontal={false}
                   />
-                  <Bar dataKey="rate" name="Inflation %" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={24} />
+                  <XAxis
+                    type="number"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    hide
+                  />
+                  <YAxis
+                    dataKey="category"
+                    type="category"
+                    stroke="hsl(var(--foreground))"
+                    fontSize={13}
+                    fontWeight={500}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--muted))", opacity: 0.2 }}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      borderColor: "hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar
+                    dataKey="rate"
+                    name="Inflation %"
+                    fill="hsl(var(--primary))"
+                    radius={[0, 4, 4, 0]}
+                    barSize={24}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
