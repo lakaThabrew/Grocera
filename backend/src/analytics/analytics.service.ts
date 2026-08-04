@@ -28,7 +28,7 @@ export class AnalyticsService {
 
   async getProductAnalytics(productId: string): Promise<ProductAnalytics> {
     this.logger.debug(`Fetching analytics for product ${productId}`);
-    
+
     const history = await this.prisma.priceHistory.findMany({
       where: { productId },
       orderBy: { createdAt: 'asc' },
@@ -47,22 +47,25 @@ export class AnalyticsService {
       };
     }
 
-    const prices = history.map(h => h.price);
+    const prices = history.map((h) => h.price);
     const currentPrice = prices[prices.length - 1];
     const highestPrice = Math.max(...prices);
     const lowestPrice = Math.min(...prices);
     const averagePrice = prices.reduce((a, b) => a + b, 0) / prices.length;
-    
+
     // Volatility: standard deviation / mean
-    const variance = prices.reduce((acc, val) => acc + Math.pow(val - averagePrice, 2), 0) / prices.length;
+    const variance =
+      prices.reduce((acc, val) => acc + Math.pow(val - averagePrice, 2), 0) /
+      prices.length;
     const stdDev = Math.sqrt(variance);
     const priceVolatility = (stdDev / averagePrice) * 100;
 
     // Simple prediction: Moving average of last 3 points
     const recentPrices = prices.slice(-3);
-    const predictionNextWeek = recentPrices.reduce((a, b) => a + b, 0) / recentPrices.length;
+    const predictionNextWeek =
+      recentPrices.reduce((a, b) => a + b, 0) / recentPrices.length;
 
-    const historyData = history.map(h => ({
+    const historyData = history.map((h) => ({
       date: h.createdAt.toISOString().split('T')[0],
       price: h.price,
     }));
@@ -81,10 +84,10 @@ export class AnalyticsService {
 
   async getMarketInflation(): Promise<MarketInflation> {
     this.logger.debug('Calculating market inflation trends');
-    
+
     // In a real production system, this would involve complex SQL aggregations over the entire DB.
     // For this implementation, we will simulate a market index based on recent price histories.
-    
+
     const historicalIndex: Array<{ date: string; indexValue: number }> = [];
     let baseIndex = 100;
     let previousMonthAvg = 0;
@@ -108,19 +111,20 @@ export class AnalyticsService {
       });
 
       const currentMonthAvg = result._avg.price || previousMonthAvg || 100;
-      
+
       if (i === 6) {
         baseIndex = 100;
       } else if (previousMonthAvg > 0) {
-        const change = ((currentMonthAvg - previousMonthAvg) / previousMonthAvg) * 100;
+        const change =
+          ((currentMonthAvg - previousMonthAvg) / previousMonthAvg) * 100;
         baseIndex = baseIndex * (1 + change / 100);
       }
-      
+
       previousMonthAvg = currentMonthAvg;
 
       historicalIndex.push({
         date: `${startOfMonth.toLocaleString('default', { month: 'short' })} ${startOfMonth.getFullYear()}`,
-        indexValue: Number(baseIndex.toFixed(2))
+        indexValue: Number(baseIndex.toFixed(2)),
       });
     }
 
@@ -129,23 +133,32 @@ export class AnalyticsService {
     const inflationRate = ((endValue - startValue) / startValue) * 100;
 
     const categories = await this.prisma.category.findMany({ take: 3 });
-    const categoryBreakdown = [];
-    
+    const categoryBreakdown: Array<{ category: string; rate: number }> = [];
+
     for (const cat of categories) {
       const oldPrices = await this.prisma.priceHistory.aggregate({
-        where: { product: { categoryId: cat.id }, createdAt: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
-        _avg: { price: true }
+        where: {
+          product: { categoryId: cat.id },
+          createdAt: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        },
+        _avg: { price: true },
       });
       const newPrices = await this.prisma.priceHistory.aggregate({
-        where: { product: { categoryId: cat.id }, createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
-        _avg: { price: true }
+        where: {
+          product: { categoryId: cat.id },
+          createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        },
+        _avg: { price: true },
       });
 
       const oldAvg = oldPrices._avg.price || 1;
       const newAvg = newPrices._avg.price || oldAvg;
       const rate = ((newAvg - oldAvg) / oldAvg) * 100;
 
-      categoryBreakdown.push({ category: cat.name, rate: Number(rate.toFixed(2)) });
+      categoryBreakdown.push({
+        category: cat.name,
+        rate: Number(rate.toFixed(2)),
+      });
     }
 
     return {

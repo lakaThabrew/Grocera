@@ -36,34 +36,57 @@ describe('ConsumersService', () => {
 
   describe('deletePriceAlert', () => {
     it('should delete if alert belongs to user', async () => {
-      jest.spyOn(prisma.priceAlert, 'findFirst').mockResolvedValue({ id: 'alert-1', userId: 'user-1' } as any);
+      jest
+        .spyOn(prisma.priceAlert, 'findFirst')
+        .mockResolvedValue({ id: 'alert-1', userId: 'user-1' } as any);
       jest.spyOn(prisma.priceAlert, 'delete').mockResolvedValue({} as any);
 
-      await expect(service.deletePriceAlert('alert-1', 'user-1')).resolves.toBeDefined();
-      expect(prisma.priceAlert.delete).toHaveBeenCalledWith({ where: { id: 'alert-1' } });
+      await expect(
+        service.deletePriceAlert('alert-1', 'user-1'),
+      ).resolves.toBeDefined();
+      // Prisma delegates are intentionally mocked as methods in this test.
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(prisma.priceAlert.delete).toHaveBeenCalledWith({
+        where: { id: 'alert-1' },
+      });
     });
 
     it('should throw if alert does not belong to user', async () => {
       jest.spyOn(prisma.priceAlert, 'findFirst').mockResolvedValue(null);
 
-      await expect(service.deletePriceAlert('alert-1', 'user-2')).rejects.toThrow('Alert not found or unauthorized');
+      await expect(
+        service.deletePriceAlert('alert-1', 'user-2'),
+      ).rejects.toThrow('Alert not found or unauthorized');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prisma.priceAlert.delete).not.toHaveBeenCalled();
     });
   });
 
   describe('markNotificationRead', () => {
     it('should mark read if notification belongs to user', async () => {
-      jest.spyOn(prisma.notification, 'findFirst').mockResolvedValue({ id: 'notif-1', userId: 'user-1' } as any);
+      jest
+        .spyOn(prisma.notification, 'findFirst')
+        .mockResolvedValue({ id: 'notif-1', userId: 'user-1' } as any);
       jest.spyOn(prisma.notification, 'update').mockResolvedValue({} as any);
 
-      await expect(service.markNotificationRead('notif-1', 'user-1')).resolves.toBeDefined();
-      expect(prisma.notification.update).toHaveBeenCalledWith({ where: { id: 'notif-1' }, data: { isRead: true } });
+      await expect(
+        service.markNotificationRead('notif-1', 'user-1'),
+      ).resolves.toBeDefined();
+      // Prisma delegates are intentionally mocked as methods in this test.
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(prisma.notification.update).toHaveBeenCalledWith({
+        where: { id: 'notif-1' },
+        data: { isRead: true },
+      });
     });
 
     it('should throw if notification does not belong to user', async () => {
       jest.spyOn(prisma.notification, 'findFirst').mockResolvedValue(null);
 
-      await expect(service.markNotificationRead('notif-1', 'user-2')).rejects.toThrow('Notification not found or unauthorized');
+      await expect(
+        service.markNotificationRead('notif-1', 'user-2'),
+      ).rejects.toThrow('Notification not found or unauthorized');
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(prisma.notification.update).not.toHaveBeenCalled();
     });
   });

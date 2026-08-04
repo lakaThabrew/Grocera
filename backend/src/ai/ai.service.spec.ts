@@ -4,9 +4,10 @@ import { PrismaService } from '../prisma.service';
 
 describe('AiService', () => {
   let service: AiService;
-  
+
   beforeEach(() => {
-    delete process.env.GEMINI_API_KEY; // Ensure no key
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.GEMINI_API_KEY_BACKUP;
   });
 
   it('should not throw on instantiation if no API key is set', async () => {

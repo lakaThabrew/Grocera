@@ -13,6 +13,13 @@ export interface NormalizedProduct {
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
+  private readonly modelsToTry = (
+    process.env.GEMINI_MODELS ??
+    'gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite'
+  )
+    .split(',')
+    .map((model) => model.trim())
+    .filter(Boolean);
   private primaryAi: GoogleGenAI | null = null;
   private backupAi: GoogleGenAI | null = null;
 
@@ -20,7 +27,9 @@ export class AiService {
     // Requires GEMINI_API_KEY in the environment
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      this.logger.warn('GEMINI_API_KEY is not set. AI features will be disabled.');
+      this.logger.warn(
+        'GEMINI_API_KEY is not set. AI features will be disabled.',
+      );
     } else {
       this.primaryAi = new GoogleGenAI({ apiKey });
     }
@@ -42,12 +51,7 @@ export class AiService {
   private async executeWithFallback(
     operation: (aiClient: GoogleGenAI, model: string) => Promise<any>,
   ): Promise<any> {
-    const modelsToTry = [
-      'gemini-1.5-flash',
-      'gemini-1.5-pro',
-    ];
-
-    const clients = [];
+    const clients: Array<{ name: string; client: GoogleGenAI }> = [];
     if (this.primaryAi) {
       clients.push({ name: 'Primary Key', client: this.primaryAi });
     }
@@ -62,7 +66,7 @@ export class AiService {
     let lastError: any = null;
 
     for (const { name: clientName, client } of clients) {
-      for (const model of modelsToTry) {
+      for (const model of this.modelsToTry) {
         const maxRetries = 3;
         let delay = 1000;
 
@@ -70,7 +74,7 @@ export class AiService {
           try {
             if (
               attempt > 0 ||
-              model !== 'gemini-3.5-flash' ||
+              model !== this.modelsToTry[0] ||
               clientName !== 'Primary Key'
             ) {
               this.logger.debug(
@@ -253,7 +257,8 @@ export class AiService {
         You are the Grocera AI Shopping Assistant for Sri Lanka. 
         Your goal is to help users find the best prices, compare products across supermarkets (Keells, Cargills, Arpico), and give smart shopping advice.
         When asked about products or prices, ALWAYS use the search_products tool to look up current data. 
-        Summarize the findings clearly and highlight the cheapest option. Format your response in clean Markdown.
+        Summarize the findings clearly and highlight the cheapest option.
+        Format responses in clean Markdown: use short paragraphs, bullet lists for options, and bold for product names and prices.
       `;
 
       // Build conversation history format for Google Gen AI
@@ -280,16 +285,33 @@ export class AiService {
         }),
       );
 
-      // Check if the AI decided to call the tool
-      if (chatResponse.functionCalls && chatResponse.functionCalls.length > 0) {
-        const call = chatResponse.functionCalls[0];
-        if (call.name === 'search_products') {
+      // Resolve tool calls until Gemini returns a text-only final response.
+      // Accessing response.text on a function-call response produces an SDK warning.
+      for (let toolRound = 0; toolRound < 3; toolRound++) {
+        const functionCalls = chatResponse.functionCalls ?? [];
+        if (functionCalls.length === 0) {
+          return (
+            this.getResponseText(chatResponse) ||
+            "I'm sorry, I couldn't process that request."
+          );
+        }
+
+        const modelContent = chatResponse.candidates?.[0]?.content;
+        if (modelContent) {
+          contents.push(modelContent);
+        }
+
+        const toolResponses: NonNullable<Content['parts']> = [];
+        for (const call of functionCalls) {
+          if (call.name !== 'search_products') {
+            throw new Error(`Unsupported AI tool call: ${call.name}`);
+          }
+
           const args = call.args as { query: string };
           this.logger.log(
             `AI called search_products with query: ${args.query}`,
           );
 
-          // Execute Prisma query
           const products = await this.prisma.product.findMany({
             where: {
               name: { contains: args.query, mode: 'insensitive' },
@@ -304,50 +326,55 @@ export class AiService {
             take: 20,
           });
 
-          // Format results for the AI
-          const searchResults = products.map((p) => ({
-            name: p.name,
-            store: p.store.name,
-            price: p.prices.length > 0 ? p.prices[0].price : 'Unknown',
-            brand: p.brand,
-            weight: p.weight,
-          }));
-
-          // Send the tool response back to the model
-          const modelContent = chatResponse.candidates?.[0]?.content;
-          if (modelContent) {
-            contents.push(modelContent); // Append model's tool call
-          }
-          contents.push({
-            role: 'user',
-            parts: [
-              {
-                functionResponse: {
-                  name: 'search_products',
-                  response: { results: searchResults },
-                },
+          toolResponses.push({
+            functionResponse: {
+              name: 'search_products',
+              response: {
+                results: products.map((product) => ({
+                  name: product.name,
+                  store: product.store.name,
+                  price:
+                    product.prices.length > 0
+                      ? product.prices[0].price
+                      : 'Unknown',
+                  brand: product.brand,
+                  weight: product.weight,
+                })),
               },
-            ],
+            },
           });
-
-          // Get final response from AI
-          chatResponse = await this.executeWithFallback((aiClient, model) =>
-            aiClient.models.generateContent({
-              model: model,
-              contents,
-              config: {
-                systemInstruction: { parts: [{ text: systemInstruction }] },
-              },
-            }),
-          );
         }
+
+        contents.push({ role: 'user', parts: toolResponses });
+        chatResponse = await this.executeWithFallback((aiClient, model) =>
+          aiClient.models.generateContent({
+            model,
+            contents,
+            config: {
+              systemInstruction: { parts: [{ text: systemInstruction }] },
+              tools,
+            },
+          }),
+        );
       }
 
-      return chatResponse.text || "I'm sorry, I couldn't process that request.";
+      throw new Error('AI exceeded the maximum number of tool-call rounds.');
     } catch (error) {
       this.logger.error('Error in chatWithAssistant:', error);
       return "I'm currently experiencing technical difficulties. Please try again later.";
     }
+  }
+
+  private getResponseText(response: any): string {
+    const parts = response.candidates?.[0]?.content?.parts;
+    if (!Array.isArray(parts)) {
+      return '';
+    }
+
+    return parts
+      .map((part) => (typeof part.text === 'string' ? part.text : ''))
+      .filter(Boolean)
+      .join('\n');
   }
 
   /**

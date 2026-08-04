@@ -28,13 +28,19 @@ export class ConsumersService {
     }
 
     // Web Push Setup
-    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'dummy_public_key';
-    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'dummy_private_key';
-    webpush.setVapidDetails(
-      'mailto:admin@grocera.com',
-      vapidPublicKey,
-      vapidPrivateKey
-    );
+    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+    if (vapidPublicKey && vapidPrivateKey) {
+      try {
+        webpush.setVapidDetails(
+          'mailto:admin@grocera.com',
+          vapidPublicKey,
+          vapidPrivateKey,
+        );
+      } catch {
+        this.logger.warn('VAPID initialization skipped (invalid key pair)');
+      }
+    }
   }
 
   // ---- Favorites ---- //
@@ -77,7 +83,12 @@ export class ConsumersService {
 
   // ---- Price Alerts ---- //
 
-  async createPriceAlert(userId: string, productId: string, targetPrice: number, channels: { email: boolean; sms: boolean; push: boolean }) {
+  async createPriceAlert(
+    userId: string,
+    productId: string,
+    targetPrice: number,
+    channels: { email: boolean; sms: boolean; push: boolean },
+  ) {
     return this.prisma.priceAlert.create({
       data: {
         userId,
@@ -119,7 +130,7 @@ export class ConsumersService {
       data: { isActive: !alert.isActive },
     });
   }
-  
+
   async deletePriceAlert(alertId: string, userId: string) {
     const alert = await this.prisma.priceAlert.findFirst({
       where: { id: alertId, userId },
@@ -127,7 +138,7 @@ export class ConsumersService {
     if (!alert) throw new Error('Alert not found or unauthorized');
 
     return this.prisma.priceAlert.delete({
-      where: { id: alertId }
+      where: { id: alertId },
     });
   }
 
@@ -145,7 +156,8 @@ export class ConsumersService {
     const notification = await this.prisma.notification.findFirst({
       where: { id: notificationId, userId },
     });
-    if (!notification) throw new Error('Notification not found or unauthorized');
+    if (!notification)
+      throw new Error('Notification not found or unauthorized');
 
     return this.prisma.notification.update({
       where: { id: notificationId },
@@ -168,8 +180,10 @@ export class ConsumersService {
     });
 
     for (const alert of activeAlerts) {
-      this.logger.log(`Triggering price alert for user ${alert.userId} on product ${alert.productId}`);
-      
+      this.logger.log(
+        `Triggering price alert for user ${alert.userId} on product ${alert.productId}`,
+      );
+
       // 1. Create In-App Notification
       await this.prisma.notification.create({
         data: {
@@ -192,16 +206,21 @@ export class ConsumersService {
           });
           this.logger.log(`Email sent to ${alert.user.email}`);
         } catch (error) {
-          this.logger.error(`Failed to send email to ${alert.user.email}`, error);
+          this.logger.error(
+            `Failed to send email to ${alert.user.email}`,
+            error,
+          );
         }
       }
 
       // 3. Send SMS if opted in
       if (alert.smsAlert && this.twilioClient) {
         try {
-          const profile = await this.prisma.profile.findUnique({ where: { userId: alert.user.id } });
-          const phone = profile?.phone || process.env.TWILIO_TEST_NUMBER; 
-          
+          const profile = await this.prisma.profile.findUnique({
+            where: { userId: alert.user.id },
+          });
+          const phone = profile?.phone || process.env.TWILIO_TEST_NUMBER;
+
           if (phone) {
             await this.twilioClient.messages.create({
               body: `Grocera Alert: ${alert.product.name} is now Rs. ${newPrice}!`,
@@ -226,17 +245,19 @@ export class ConsumersService {
               JSON.stringify({
                 title: 'Price Drop Alert! 🎉',
                 body: `${alert.product.name} is now Rs. ${newPrice}!`,
-              })
+              }),
             );
             this.logger.log(`Push notification sent to user ${alert.user.id}`);
           } else {
-            this.logger.log(`No push subscription found for user ${alert.user.id}, skipping push`);
+            this.logger.log(
+              `No push subscription found for user ${alert.user.id}, skipping push`,
+            );
           }
         } catch (error) {
           this.logger.error(`Failed to send push notification`, error);
         }
       }
-      
+
       // Deactivate alert after firing to prevent spam
       await this.prisma.priceAlert.update({
         where: { id: alert.id },

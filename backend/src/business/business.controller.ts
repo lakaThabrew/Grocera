@@ -15,7 +15,9 @@ export class BusinessController {
   constructor(private readonly businessService: BusinessService) {}
 
   @Get('market-share/:storeId')
-  @ApiOperation({ summary: 'Get market share estimation based on price leadership' })
+  @ApiOperation({
+    summary: 'Get market share estimation based on price leadership',
+  })
   async getMarketShare(@Param('storeId') storeId: string) {
     return this.businessService.getMarketShare(storeId);
   }

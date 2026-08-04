@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
@@ -23,10 +23,12 @@ import { BullBoardAuthMiddleware } from './admin/bull-board-auth.middleware';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100, // 100 requests per minute
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100, // 100 requests per minute
+      },
+    ]),
     CacheModule.register({
       isGlobal: true, // Make cache available globally
       ttl: 300000, // 5 minutes default TTL
@@ -65,8 +67,6 @@ import { BullBoardAuthMiddleware } from './admin/bull-board-auth.middleware';
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(BullBoardAuthMiddleware)
-      .forRoutes({ path: '/admin/queues*', method: RequestMethod.ALL });
+    consumer.apply(BullBoardAuthMiddleware).forRoutes('/admin/queues');
   }
 }

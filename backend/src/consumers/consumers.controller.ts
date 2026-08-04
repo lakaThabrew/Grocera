@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Param, Body, UseGuards, Delete, Patch, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  UseGuards,
+  Delete,
+  Patch,
+  Req,
+} from '@nestjs/common';
 import { ConsumersService } from './consumers.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
@@ -21,7 +31,10 @@ export class ConsumersController {
   @Post('favorites/products/:id')
   @ApiOperation({ summary: 'Toggle product in wishlist' })
   async toggleFavoriteProduct(@Req() req, @Param('id') productId: string) {
-    return this.consumersService.toggleFavoriteProduct(req.user.userId, productId);
+    return this.consumersService.toggleFavoriteProduct(
+      req.user.userId,
+      productId,
+    );
   }
 
   // ---- Price Alerts ----
@@ -48,11 +61,17 @@ export class ConsumersController {
   })
   async createPriceAlert(@Req() req, @Body() body: any) {
     return this.consumersService.createPriceAlert(
-      req.user.userId, 
-      body.productId, 
-      body.targetPrice, 
-      { email: body.emailAlert, sms: body.smsAlert, push: body.pushAlert }
+      req.user.userId,
+      body.productId,
+      body.targetPrice,
+      { email: body.emailAlert, sms: body.smsAlert, push: body.pushAlert },
     );
+  }
+
+  @Patch('alerts/:id')
+  @ApiOperation({ summary: 'Update price alert' })
+  async updatePriceAlert(@Req() req, @Param('id') id: string) {
+    return this.consumersService.togglePriceAlert(id, req.user.userId);
   }
 
   @Patch('alerts/:id/toggle')

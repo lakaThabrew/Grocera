@@ -9,12 +9,13 @@ export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getStats() {
-    const [totalUsers, totalProducts, totalStores, totalActiveSubscriptions] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.product.count(),
-      this.prisma.store.count(),
-      this.prisma.subscription.count({ where: { status: 'ACTIVE' } }),
-    ]);
+    const [totalUsers, totalProducts, totalStores, totalActiveSubscriptions] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.product.count(),
+        this.prisma.store.count(),
+        this.prisma.subscription.count({ where: { status: 'ACTIVE' } }),
+      ]);
 
     return {
       totalUsers,
@@ -56,10 +57,10 @@ export class AdminService {
           create: {
             firstName: data.firstName || '',
             lastName: data.lastName || '',
-          }
-        }
+          },
+        },
       },
-      select: { id: true, email: true, role: true }
+      select: { id: true, email: true, role: true },
     });
   }
 
@@ -78,7 +79,7 @@ export class AdminService {
   async getHealth() {
     const uptime = process.uptime();
     const memoryUsage = process.memoryUsage();
-    
+
     // Read last 50 lines of today's log file if it exists
     const date = new Date().toISOString().split('T')[0];
     const logFilePath = path.join(process.cwd(), 'logs', `app-${date}.log`);
@@ -87,8 +88,10 @@ export class AdminService {
     try {
       if (fs.existsSync(logFilePath)) {
         const fileContent = fs.readFileSync(logFilePath, 'utf-8');
-        const lines = fileContent.split('\n').filter(line => line.trim() !== '');
-        recentLogs = lines.slice(-50).map(line => JSON.parse(line));
+        const lines = fileContent
+          .split('\n')
+          .filter((line) => line.trim() !== '');
+        recentLogs = lines.slice(-50).map((line) => JSON.parse(line));
       }
     } catch (e) {
       console.error('Error reading log file', e);

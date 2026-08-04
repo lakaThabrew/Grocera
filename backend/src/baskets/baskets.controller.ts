@@ -2,8 +2,12 @@ import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { BasketsService } from './baskets.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ArrayNotEmpty, IsArray, IsString } from 'class-validator';
 
 class OptimizeBasketDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
   shoppingList: string[];
 }
 
@@ -15,7 +19,9 @@ export class BasketsController {
   constructor(private readonly basketsService: BasketsService) {}
 
   @Post('optimize')
-  @ApiOperation({ summary: 'Optimize a shopping list across multiple supermarkets' })
+  @ApiOperation({
+    summary: 'Optimize a shopping list across multiple supermarkets',
+  })
   @ApiBody({
     schema: {
       type: 'object',

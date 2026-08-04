@@ -9,8 +9,13 @@ import {
 import * as winston from 'winston';
 import 'winston-daily-rotate-file';
 import compression from 'compression';
+import { mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 async function bootstrap() {
+  const logDirectory = resolve(process.env.LOG_DIRECTORY ?? 'logs');
+  mkdirSync(logDirectory, { recursive: true });
+
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger({
       transports: [
@@ -24,7 +29,7 @@ async function bootstrap() {
           ),
         }),
         new winston.transports.DailyRotateFile({
-          filename: 'logs/error-%DATE%.log',
+          filename: resolve(logDirectory, 'error-%DATE%.log'),
           datePattern: 'YYYY-MM-DD',
           level: 'error',
           format: winston.format.combine(
@@ -33,7 +38,7 @@ async function bootstrap() {
           ),
         }),
         new winston.transports.DailyRotateFile({
-          filename: 'logs/app-%DATE%.log',
+          filename: resolve(logDirectory, 'app-%DATE%.log'),
           datePattern: 'YYYY-MM-DD',
           format: winston.format.combine(
             winston.format.timestamp(),
@@ -47,9 +52,27 @@ async function bootstrap() {
   // Global Prefix
   app.setGlobalPrefix('api/v1');
 
+  const configuredFrontendOrigins = (process.env.FRONTEND_URL ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const localDevelopmentOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3002',
+  ];
+  const allowedOrigins =
+    process.env.NODE_ENV === 'production'
+      ? configuredFrontendOrigins
+      : [
+          ...new Set([
+            ...configuredFrontendOrigins,
+            ...localDevelopmentOrigins,
+          ]),
+        ];
+
   // CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000', // Frontend URL
+    origin: allowedOrigins,
     credentials: true,
   });
 
